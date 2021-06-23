@@ -1,0 +1,112 @@
+# Minecraft Server in a Docker Compose
+
+# Vladimir Mikhalev
+# callvaldemar@gmail.com
+# www.heyvaldemar.com
+
+# Install the Docker Engine by following the official guide: https://docs.docker.com/engine/install/
+# Install the Docker Compose by following the official guide: https://docs.docker.com/compose/install/
+
+# Note that plugins folder should be in the same directory with minecraft-server-docker-compose.yml
+
+# Deploy Minecraft server with a Docker Compose using the command:
+# docker-compose -f minecraft-server-docker-compose.yml -p minecraft up -d
+
+# Minecraft Server Management
+
+# Apply new configuration after a change in the `minecraft-server-docker-compose.yml` using the command:
+# docker-compose -f minecraft-server-docker-compose.yml -p minecraft up -d
+
+# Connect to the Minecraft server command-line interface using the command:
+# docker exec -i ContainerName rcon-cli
+
+# Stop Minecraft server using the command:
+# docker exec ContainerName rcon-cli stop
+
+volumes:
+  minecraft-data:
+
+services:
+  minecraft:
+    image: itzg/minecraft-server
+    volumes:
+      - minecraft-data:/data
+      - ./plugins:/plugins:ro
+    environment:
+      EULA: 'true'
+      CONSOLE: 'false'
+      # Server icon (replace with yours)
+      ICON: https://www.heyvaldemar.com/wp-content/uploads/heyvaldemar-minecraft.png
+      # Minecraft server type (replace with yours)
+      # VANILLA, FORGE, BUKKIT, SPIGOT, PAPER, CURSEFORGE, SPONGEVANILLA, FABRIC
+      TYPE: PAPER
+      # Paper Minecraft server version (replace with yours)
+      VERSION: LATEST
+      # Memory limit (replace with yours)
+      MEMORY: 2G
+      # Server name (replace with yours)
+      SERVER_NAME: MC.HEVA.CO - heyValdemar - Minecraft
+      # Message of the day (replace with yours)
+      MOTD: MC.HEVA.CO - Welcome to Valdemar's Minecraft server
+      # Level type and generator settings (replace with yours)
+      # DEFAULT, FLAT, LARGEBIOMES, AMPLIFIED, CUSTOMIZED, BUFFET
+      LEVEL_TYPE: DEFAULT
+      # World save name (replace with yours)
+      LEVEL: minecraft-world-1
+      # Game mode (replace with yours)
+      # creative, survival, adventure, spectator (replace with yours)
+      MODE: survival
+      # Force gamemode (replace with yours)
+      FORCE_GAMEMODE: 'false'
+      # Difficulty (replace with yours)
+      # peaceful, easy, normal, hard
+      DIFFICULTY: normal
+      # Hardcore (replace with yours)
+      HARDCORE: 'false'
+      # Announce player achievements (replace with yours)
+      ANNOUNCE_PLAYER_ACHIEVEMENTS: 'true'
+      # Max players (replace with yours)
+      MAX_PLAYERS: 20
+      # PVP mode (replace with yours)
+      PVP: 'true'
+      # Allow flight (replace with yours)
+      ALLOW_FLIGHT: 'false'
+      # Max world size (replace with yours)
+      MAX_WORLD_SIZE: 10000
+      # Max build height (replace with yours)
+      MAX_BUILD_HEIGHT: 265
+      # Spawn animals (replace with yours)
+      SPAWN_ANIMALS: 'true'
+      # Spawn monsters (replace with yours)
+      SPAWN_MONSTERS: 'true'
+      # Spawn NPCs (replace with yours)
+      SPAWN_NPCS: 'true'
+      # Set spawn protection (replace with yours)
+      SPAWN_PROTECTION: 0
+      # View distance (replace with yours)
+      VIEW_DISTANCE: 10
+      # Online mode (replace with yours)
+      ONLINE_MODE: 'true'
+      # Snooper (replace with yours)
+      SNOOPER_ENABLED: 'true'
+      # Enable command block (replace with yours)
+      ENABLE_COMMAND_BLOCK: 'true'
+    ports:
+      - "25565:25565"
+    restart: unless-stopped
+
+  backups:
+    image: itzg/mc-backup
+    environment:
+      # Minecraft server backups interval (replace with yours)
+      BACKUP_INTERVAL: 23h
+      # Minecraft server backups prune interval (replace with yours)
+      PRUNE_BACKUPS_DAYS: 7
+    volumes:
+    - minecraft-data:/data:ro
+    # Minecraft backups location
+    - /srv/minecraft-data/backups:/backups
+    network_mode: 'service:minecraft'
+    restart: unless-stopped
+    depends_on:
+      - minecraft
