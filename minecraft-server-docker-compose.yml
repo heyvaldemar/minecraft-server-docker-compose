@@ -28,6 +28,7 @@ volumes:
 
 services:
   minecraft:
+    # Image tag (replace with yours)
     image: itzg/minecraft-server:java17-openj9
     volumes:
       - minecraft-data:/data
