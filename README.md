@@ -1,8 +1,6 @@
 # Minecraft Server in a Docker Compose
 
-Install the Docker Engine by following the official guide: https://docs.docker.com/engine/install/
-
-Install the Docker Compose by following the official guide: https://docs.docker.com/compose/install/
+Install Docker Engine and Docker Compose by following my guide https://www.heyvaldemar.com/install-docker-engine-and-docker-compose-on-ubuntu-server/
 
 Note that `plugins` folder should be in the same directory with `minecraft-server-docker-compose.yml`
 
