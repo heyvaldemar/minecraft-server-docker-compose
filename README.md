@@ -8,13 +8,13 @@ Deploy Minecraft server with a Docker Compose using the command:
 
 `docker compose -f minecraft-server-docker-compose.yml -p minecraft up -d`
 
+Detailed installation guide can be found on my [website](https://www.heyvaldemar.com/install-minecraft-server-with-docker-compose/).
+
 # Minecraft Server Management
 
 Apply new configuration after a change in the `minecraft-server-docker-compose.yml` using the command:
 
 `docker compose -f minecraft-server-docker-compose.yml -p minecraft up -d`
-
-Detailed installation guide can be found on my [website](https://www.heyvaldemar.com/install-minecraft-server-with-docker-compose/).
 
 Connect to the Minecraft server command-line interface using the command:
 
