@@ -8,13 +8,13 @@ Note that `plugins` folder should be in the same directory with `minecraft-serve
 
 Deploy Minecraft server with a Docker Compose using the command:
 
-`docker-compose -f minecraft-server-docker-compose.yml -p minecraft up -d`
+`docker compose -f minecraft-server-docker-compose.yml -p minecraft up -d`
 
 # Minecraft Server Management
 
 Apply new configuration after a change in the `minecraft-server-docker-compose.yml` using the command:
 
-`docker-compose -f minecraft-server-docker-compose.yml -p minecraft up -d`
+`docker compose -f minecraft-server-docker-compose.yml -p minecraft up -d`
 
 Connect to the Minecraft server command-line interface using the command:
 
