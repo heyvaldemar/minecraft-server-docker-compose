@@ -14,6 +14,8 @@ Apply new configuration after a change in the `minecraft-server-docker-compose.y
 
 `docker compose -f minecraft-server-docker-compose.yml -p minecraft up -d`
 
+Detailed installation guide can be found on my [website](https://www.heyvaldemar.com/install-minecraft-server-with-docker-compose/).
+
 Connect to the Minecraft server command-line interface using the command:
 
 `docker exec -i ContainerName rcon-cli`
@@ -21,8 +23,6 @@ Connect to the Minecraft server command-line interface using the command:
 Stop Minecraft server using the command:
 
 `docker exec ContainerName rcon-cli stop`
-
-Detailed installation guide can be found on my [website](https://www.heyvaldemar.com/install-minecraft-server-with-docker-compose/).
 
 # Author
 
