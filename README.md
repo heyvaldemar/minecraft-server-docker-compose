@@ -34,6 +34,8 @@ hey, I’m Vladimir Mikhalev, but my friends call me Valdemar.
 🎨 Follow me on [Instagram](https://www.instagram.com/heyvaldemar/)\
 🎸 Follow me on [Facebook](https://www.facebook.com/heyValdemarFB/)\
 🎥 Follow me on [TikTok](https://www.tiktok.com/@heyvaldemar)
+💻 Follow me on [LinkedIn](https://www.linkedin.com/in/heyvaldemar/)\
+🐈 Follow me on [GitHub](https://github.com/heyvaldemar)
 
 # Communication
 👾 Chat with IT pros on [Discord](https://discord.com/invite/D7fGMYjdR9)\
