@@ -25,7 +25,6 @@ Stop Minecraft server using the command:
 `docker exec ContainerName rcon-cli stop`
 
 # Author
-
 hey, I’m Vladimir Mikhalev, but my friends call me Valdemar.
 
 🌐 My [website](https://www.heyvaldemar.com/) with detailed IT guides\
