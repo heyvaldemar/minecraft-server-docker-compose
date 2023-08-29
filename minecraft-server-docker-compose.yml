@@ -1,134 +1,159 @@
-# Minecraft Server in a Docker Compose
+# # Minecraft Server Using Docker Compose
 
-# Author
-# hey, I’m Vladimir Mikhalev, but my friends call me Valdemar.
+# The complete installation guide is available on my website https://www.heyvaldemar.com/install-minecraft-server-using-docker-compose/
 
-# My website with detailed IT guides: https://www.heyvaldemar.com/
-# Follow me on YouTube: https://www.youtube.com/channel/UCf85kQ0u1sYTTTyKVpxrlyQ?sub_confirmation=1
-# Follow me on Twitter: https://twitter.com/heyValdemar
-# Follow me on Instagram: https://www.instagram.com/heyvaldemar/
-# Follow me on Facebook: https://www.facebook.com/heyValdemarFB/
-# Follow me on TikTok: https://www.tiktok.com/@heyvaldemar
-# Follow me on [LinkedIn](https://www.linkedin.com/in/heyvaldemar/)
-# Follow me on [GitHub](https://github.com/heyvaldemar)
+# Change variables in the `.env` to meet your requirements.
+# Note that the `.env` file and `plugins` folder should be in the same directory as `minecraft-server-docker-compose.yml`.
 
-# Communication
-# Chat with IT pros on Discord: https://discord.gg/AJQGCCBcqf
-# Reach me at ask@sre.gg
+# Create a network for your services before deploying the configuration using the command:
+# `docker network create minecraft-server-network`
 
-# Give Thanks
-# Support on GitHub: https://github.com/sponsors/heyValdemar
-# Support on Patreon: https://www.patreon.com/heyValdemar
-# Support on BuyMeaCoffee: https://www.buymeacoffee.com/heyValdemar
-# Support on Ko-fi: https://ko-fi.com/heyValdemar
-# Support on PayPal: https://www.paypal.com/paypalme/heyValdemarCOM
+# Deploy Minecraft Server using Docker Compose:
+# `docker compose -f minecraft-server-docker-compose.yml -p minecraft-server up -d`
 
-# Install Docker Engine and Docker Compose by following my guide: https://www.heyvaldemar.com/install-docker-engine-and-docker-compose-on-ubuntu-server/
+# You can check the Minecraft Server status using the commands:
+# ```
+# MINECRAFT_SERVER_CONTAINER=$(docker ps -aqf "name=minecraft-server-minecraft-server") \
+# && docker exec -it $MINECRAFT_SERVER_CONTAINER mc-monitor status
+# ```
 
-# Note that plugins folder should be in the same directory with minecraft-server-docker-compose.yml
+# # Minecraft Servers Logs
+# You can check logs using the commands:
+# ```
+# MINECRAFT_SERVER_CONTAINER=$(docker ps -aqf "name=minecraft-server-minecraft-server") \
+# && docker logs $MINECRAFT_SERVER_CONTAINER
+# ```
 
-# Deploy Minecraft server with a Docker Compose using the command:
-# docker compose -f minecraft-server-docker-compose.yml -p minecraft up -d
-
-# Detailed installation guide can be found on my website: https://www.heyvaldemar.com/install-minecraft-server-with-docker-compose/
-
-# Minecraft Server Management
-
-# Apply new configuration after a change in the `minecraft-server-docker-compose.yml` using the command:
-# docker compose -f minecraft-server-docker-compose.yml -p minecraft up -d
+# # Minecraft Server Management
+# Apply new configuration after a change in the `minecraft-server-docker-compose.yml` or `.env` using the command:
+# `docker compose -f minecraft-server-docker-compose.yml -p minecraft up -d`
 
 # Connect to the Minecraft server command-line interface using the command:
-# docker exec -i ContainerName rcon-cli
+# ```
+# MINECRAFT_SERVER_CONTAINER=$(docker ps -aqf "name=minecraft-server-minecraft-server") \
+# && docker exec -i $MINECRAFT_SERVER_CONTAINER rcon-cli
+# ```
 
-# Stop Minecraft server using the command:
-# docker exec ContainerName rcon-cli stop
+# # Backups
+# The `backups` container in the configuration ensures a consistent backup routine for the Minecraft server. Here's a detailed breakdown:
+
+# - **Connection to Minecraft Server**: 
+#   - The container communicates with the main Minecraft server through RCON (Remote Console) for server management. 
+#   - Specified by: `RCON_HOST`
+
+# - **Backup Schedule**: 
+#   - Determines the frequency of backups.
+#   - Specified by: `BACKUP_INTERVAL`
+
+# - **Backup Pruning**: 
+#   - Older backups are removed periodically to manage storage space.
+#   - Specified by: `PRUNE_BACKUPS_DAYS`
+
+# - **Initial Delay**: 
+#   - The container waits for a defined time before starting the backup routine.
+#   - Specified by: `INITIAL_DELAY`
+
+# - **Backup Storage**: 
+#   - Defines the source of server data and backup storage location.
+#   - Backup location: `MINECRAFT_SERVER_BACKUPS_PATH`
+
+# # Restore (Init Container)
+# The `restore` container, described as an "init" container, serves a unique role:
+
+# - **Functionality**: 
+#   - Mainly restores the data volume if found empty.
+  
+# - **Entry Point**: 
+#   - Specifies the primary action upon container startup.
+#   - Defined by: `entrypoint` (default: `restore-tar-backup`).
+
+# - **Data Restoration**: 
+#   - Has access to the server data and backups for restoration purposes.
+#   - Backups source: `MINECRAFT_SERVER_BACKUPS_PATH`
+
+# By integrating this Docker Compose setup, it not only ensures consistent backups of the Minecraft server data but also offers efficient data restoration when needed.
+# Flexible configuration options provide tailored backup routines catering to specific requirements, thereby guaranteeing data integrity and availability.
+
+networks:
+  minecraft-server-network:
+    external: true
 
 volumes:
   minecraft-data:
 
 services:
-  minecraft:
-    # Image tag (replace with yours)
-    image: itzg/minecraft-server:java17-openj9
+  minecraft-server:
+    image: ${MINECRAFT_SERVER_IMAGE_TAG}
     volumes:
       - minecraft-data:/data
       - ./plugins:/plugins:ro
     environment:
-      EULA: 'true'
-      CONSOLE: 'false'
-      # Server icon (replace with yours)
-      ICON: https://www.heyvaldemar.com/wp-content/uploads/heyvaldemar-minecraft.png
-      # Minecraft server type (replace with yours)
-      # VANILLA, FORGE, BUKKIT, SPIGOT, PAPER, CURSEFORGE, SPONGEVANILLA, FABRIC
-      TYPE: PAPER
-      # Paper Minecraft server version (replace with yours)
-      VERSION: LATEST
-      # Memory limit (replace with yours)
-      MEMORY: 2G
-      # Server name (replace with yours)
-      SERVER_NAME: MC.HEVA.CO - heyValdemar - Minecraft
-      # Message of the day (replace with yours)
-      MOTD: MC.HEVA.CO - Welcome to Valdemar's Minecraft server
-      # Level type and generator settings (replace with yours)
-      # DEFAULT, FLAT, LARGEBIOMES, AMPLIFIED, CUSTOMIZED, BUFFET
-      LEVEL_TYPE: DEFAULT
-      # World save name (replace with yours)
-      LEVEL: minecraft-world-1
-      # Game mode (replace with yours)
-      # creative, survival, adventure, spectator (replace with yours)
-      MODE: survival
-      # Force gamemode (replace with yours)
-      FORCE_GAMEMODE: 'false'
-      # Difficulty (replace with yours)
-      # peaceful, easy, normal, hard
-      DIFFICULTY: normal
-      # Hardcore (replace with yours)
-      HARDCORE: 'false'
-      # Announce player achievements (replace with yours)
-      ANNOUNCE_PLAYER_ACHIEVEMENTS: 'true'
-      # Max players (replace with yours)
-      MAX_PLAYERS: 20
-      # PVP mode (replace with yours)
-      PVP: 'true'
-      # Allow flight (replace with yours)
-      ALLOW_FLIGHT: 'false'
-      # Max world size (replace with yours)
-      MAX_WORLD_SIZE: 10000
-      # Max build height (replace with yours)
-      MAX_BUILD_HEIGHT: 265
-      # Spawn animals (replace with yours)
-      SPAWN_ANIMALS: 'true'
-      # Spawn monsters (replace with yours)
-      SPAWN_MONSTERS: 'true'
-      # Spawn NPCs (replace with yours)
-      SPAWN_NPCS: 'true'
-      # Set spawn protection (replace with yours)
-      SPAWN_PROTECTION: 0
-      # View distance (replace with yours)
-      VIEW_DISTANCE: 10
-      # Online mode (replace with yours)
-      ONLINE_MODE: 'true'
-      # Snooper (replace with yours)
-      SNOOPER_ENABLED: 'true'
-      # Enable command block (replace with yours)
-      ENABLE_COMMAND_BLOCK: 'true'
+      EULA: ${MINECRAFT_SERVER_EULA}
+      TYPE: ${MINECRAFT_SERVER_TYPE}
+      VERSION: ${MINECRAFT_SERVER_VERSION}
+      MEMORY: ${MINECRAFT_SERVER_MEMORY}
+      SERVER_NAME: ${MINECRAFT_SERVER_SERVER_NAME}
+      MOTD: ${MINECRAFT_SERVER_MOTD}
+      LEVEL_TYPE: ${MINECRAFT_SERVER_LEVEL_TYPE}
+      LEVEL: ${MINECRAFT_SERVER_LEVEL}
+      MODE: ${MINECRAFT_SERVER_MODE}
+      FORCE_GAMEMODE: ${MINECRAFT_SERVER_FORCE_GAMEMODE}
+      DIFFICULTY: ${MINECRAFT_SERVER_DIFFICULTY}
+      HARDCORE: ${MINECRAFT_SERVER_HARDCORE}
+      ANNOUNCE_PLAYER_ACHIEVEMENTS: ${MINECRAFT_SERVER_ANNOUNCE_PLAYER_ACHIEVEMENTS}
+      MAX_PLAYERS: ${MINECRAFT_SERVER_MAX_PLAYERS}
+      PVP: ${MINECRAFT_SERVER_PVP}
+      ENABLE_RCON: ${MINECRAFT_SERVER_ENABLE_RCON}
+      RCON_PASSWORD: ${MINECRAFT_SERVER_RCON_PASSWORD}
+      RCON_PORT: ${MINECRAFT_SERVER_RCON_PORT}
+      SERVER_PORT: ${MINECRAFT_SERVER_SERVER_PORT}
+      ALLOW_FLIGHT: ${MINECRAFT_SERVER_ALLOW_FLIGHT}
+      MAX_WORLD_SIZE: ${MINECRAFT_SERVER_MAX_WORLD_SIZE}
+      MAX_BUILD_HEIGHT: ${MINECRAFT_SERVER_MAX_BUILD_HEIGHT}
+      SPAWN_ANIMALS: ${MINECRAFT_SERVER_SPAWN_ANIMALS}
+      SPAWN_MONSTERS: ${MINECRAFT_SERVER_SPAWN_MONSTERS}
+      SPAWN_NPCS: ${MINECRAFT_SERVER_SPAWN_NPCS}
+      SPAWN_PROTECTION: ${MINECRAFT_SERVER_SPAWN_PROTECTION}
+      VIEW_DISTANCE: ${MINECRAFT_SERVER_VIEW_DISTANCE}
+      ONLINE_MODE: ${MINECRAFT_SERVER_ONLINE_MODE}
+      SNOOPER_ENABLED: ${MINECRAFT_SERVER_SNOOPER_ENABLED}
+      ENABLE_COMMAND_BLOCK: ${MINECRAFT_SERVER_ENABLE_COMMAND_BLOCK}
+      WHITELIST: ${MINECRAFT_SERVER_WHITELIST}
+      OPS: ${MINECRAFT_SERVER_OPS}
+      TZ: ${MINECRAFT_SERVER_SERVER_TIMEZONE}
+    networks:
+      - minecraft-server-network
     ports:
-      - "25565:25565"
+      - "${MINECRAFT_SERVER_SERVER_PORT}:${MINECRAFT_SERVER_SERVER_PORT}"
     restart: unless-stopped
 
   backups:
-    image: itzg/mc-backup:latest
+    image: ${MINECRAFT_SERVER_BACKUP_IMAGE_TAG}
     environment:
-      # Minecraft server backups interval (replace with yours)
-      BACKUP_INTERVAL: 23h
-      # Minecraft server backups prune interval (replace with yours)
-      PRUNE_BACKUPS_DAYS: 7
+      RCON_HOST: minecraft-server
+      RCON_PASSWORD: ${MINECRAFT_SERVER_RCON_PASSWORD}
+      BACKUP_INTERVAL: ${MINECRAFT_SERVER_BACKUP_INTERVAL}
+      PRUNE_BACKUPS_DAYS: ${MINECRAFT_SERVER_PRUNE_BACKUPS_DAYS}
+      INITIAL_DELAY: ${MINECRAFT_SERVER_INITIAL_DELAY}
     volumes:
     - minecraft-data:/data:ro
-    # Minecraft backups location
-    - /srv/minecraft-data/backups:/backups
-    network_mode: 'service:minecraft'
+    - ${MINECRAFT_SERVER_BACKUPS_PATH}:/backups
+    networks:
+      - minecraft-server-network
     restart: unless-stopped
     depends_on:
-      minecraft:
+      minecraft-server:
+        condition: service_healthy
+
+  restore:
+    image: ${MINECRAFT_SERVER_BACKUP_IMAGE_TAG}
+    entrypoint: restore-tar-backup
+    volumes:
+    - minecraft-data:/data
+    - ${MINECRAFT_SERVER_BACKUPS_PATH}:/backups:ro
+    networks:
+      - minecraft-server-network
+    restart: no
+    depends_on:
+      minecraft-server:
         condition: service_healthy
