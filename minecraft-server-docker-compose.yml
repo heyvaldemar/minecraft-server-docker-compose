@@ -79,13 +79,14 @@ networks:
     external: true
 
 volumes:
-  minecraft-data:
+  minecraft-server-data:
+  minecraft-server-data-backups:
 
 services:
   minecraft-server:
     image: ${MINECRAFT_SERVER_IMAGE_TAG}
     volumes:
-      - minecraft-data:/data
+      - minecraft-server-data:${DATA_PATH}
       - ./plugins:/plugins:ro
     environment:
       EULA: ${MINECRAFT_SERVER_EULA}
@@ -131,13 +132,18 @@ services:
     image: ${MINECRAFT_SERVER_BACKUP_IMAGE_TAG}
     environment:
       RCON_HOST: minecraft-server
+      RCON_PORT: ${MINECRAFT_SERVER_RCON_PORT}
       RCON_PASSWORD: ${MINECRAFT_SERVER_RCON_PASSWORD}
+      SERVER_PORT: ${MINECRAFT_SERVER_SERVER_PORT}
+      SRC_DIR: ${DATA_PATH}
+      BACKUP_METHOD: ${BACKUP_METHOD}
       BACKUP_INTERVAL: ${MINECRAFT_SERVER_BACKUP_INTERVAL}
       PRUNE_BACKUPS_DAYS: ${MINECRAFT_SERVER_PRUNE_BACKUPS_DAYS}
       INITIAL_DELAY: ${MINECRAFT_SERVER_INITIAL_DELAY}
+      TZ: ${MINECRAFT_SERVER_SERVER_TIMEZONE}
     volumes:
-    - minecraft-data:/data:ro
-    - ${MINECRAFT_SERVER_BACKUPS_PATH}:/backups
+    - minecraft-server-data:${DATA_PATH}:ro
+    - minecraft-server-data-backups:${MINECRAFT_SERVER_BACKUPS_PATH}
     networks:
       - minecraft-server-network
     restart: unless-stopped
@@ -149,8 +155,8 @@ services:
     image: ${MINECRAFT_SERVER_BACKUP_IMAGE_TAG}
     entrypoint: restore-tar-backup
     volumes:
-    - minecraft-data:/data
-    - ${MINECRAFT_SERVER_BACKUPS_PATH}:/backups:ro
+    - minecraft-server-data:${DATA_PATH}
+    - minecraft-server-data-backups:${MINECRAFT_SERVER_BACKUPS_PATH}:ro
     networks:
       - minecraft-server-network
     restart: no
