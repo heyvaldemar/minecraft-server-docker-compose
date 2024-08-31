@@ -67,23 +67,6 @@ The `backups` container in the configuration ensures a consistent backup routine
   - Defines the source of server data and backup storage location.
   - Backup location: `MINECRAFT_SERVER_BACKUPS_PATH`
 
-# Restore (Init Container)
-
-The `restore` container, described as an "init" container, serves a unique role:
-
-- **Functionality**: 
-  - Mainly restores the data volume if found empty.
-  
-- **Entry Point**: 
-  - Specifies the primary action upon container startup.
-  - Defined by: `entrypoint` (default: `restore-tar-backup`).
-
-- **Data Restoration**: 
-  - Has access to the server data and backups for restoration purposes.
-  - Backups source: `MINECRAFT_SERVER_BACKUPS_PATH`
-
-By integrating this Docker Compose setup, it not only ensures consistent backups of the Minecraft server data but also offers efficient data restoration when needed. Flexible configuration options provide tailored backup routines catering to specific requirements, thereby guaranteeing data integrity and availability.
-
 # Author
 
 I’m Vladimir Mikhalev, the [Docker Captain](https://www.docker.com/captains/vladimir-mikhalev/), but my friends can call me Valdemar.

@@ -150,16 +150,3 @@ services:
     depends_on:
       minecraft-server:
         condition: service_healthy
-
-  restore:
-    image: ${MINECRAFT_SERVER_BACKUP_IMAGE_TAG}
-    entrypoint: restore-tar-backup
-    volumes:
-    - minecraft-server-data:${DATA_PATH}
-    - minecraft-server-data-backups:${MINECRAFT_SERVER_BACKUPS_PATH}:ro
-    networks:
-      - minecraft-server-network
-    restart: no
-    depends_on:
-      minecraft-server:
-        condition: service_healthy
