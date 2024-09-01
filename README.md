@@ -2,7 +2,7 @@
 
 📙 The complete installation guide is available on my [website](https://www.heyvaldemar.com/install-minecraft-server-using-docker-compose/).
 
-💡 For details on deploying the Minecraft Proxy, check out this link: [Minecraft Proxy Using Docker Compose](https://github.com/heyvaldemar/minecraft-server-proxy-docker-compose/).
+💡 For details on deploying the Minecraft Proxy, check out this link: [Minecraft Server Proxy Using Docker Compose](https://github.com/heyvaldemar/minecraft-server-proxy-docker-compose/).
 
 ❗ Change variables in the `.env` to meet your requirements.
 
