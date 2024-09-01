@@ -1,6 +1,7 @@
 # Minecraft Server Using Docker Compose
 
 # The complete installation guide is available on my website https://www.heyvaldemar.com/install-minecraft-server-using-docker-compose/
+# For details on deploying the Minecraft Proxy, check out this link https://github.com/heyvaldemar/minecraft-server-docker-compose/
 
 # Change variables in the `.env` to meet your requirements.
 # Note that the `.env` file and `plugins` folder should be in the same directory as `minecraft-server-docker-compose.yml`.
@@ -34,45 +35,9 @@
 # && docker exec -i $MINECRAFT_SERVER_CONTAINER rcon-cli
 # ```
 
-# # Backups
-# The `backups` container in the configuration ensures a consistent backup routine for the Minecraft server. Here's a detailed breakdown:
-
-# - **Connection to Minecraft Server**: 
-#   - The container communicates with the main Minecraft server through RCON (Remote Console) for server management. 
-#   - Specified by: `RCON_HOST`
-
-# - **Backup Schedule**: 
-#   - Determines the frequency of backups.
-#   - Specified by: `BACKUP_INTERVAL`
-
-# - **Backup Pruning**: 
-#   - Older backups are removed periodically to manage storage space.
-#   - Specified by: `PRUNE_BACKUPS_DAYS`
-
-# - **Initial Delay**: 
-#   - The container waits for a defined time before starting the backup routine.
-#   - Specified by: `INITIAL_DELAY`
-
-# - **Backup Storage**: 
-#   - Defines the source of server data and backup storage location.
-#   - Backup location: `MINECRAFT_SERVER_BACKUPS_PATH`
-
-# # Restore (Init Container)
-# The `restore` container, described as an "init" container, serves a unique role:
-
-# - **Functionality**: 
-#   - Mainly restores the data volume if found empty.
-  
-# - **Entry Point**: 
-#   - Specifies the primary action upon container startup.
-#   - Defined by: `entrypoint` (default: `restore-tar-backup`).
-
-# - **Data Restoration**: 
-#   - Has access to the server data and backups for restoration purposes.
-#   - Backups source: `MINECRAFT_SERVER_BACKUPS_PATH`
-
-# By integrating this Docker Compose setup, it not only ensures consistent backups of the Minecraft server data but also offers efficient data restoration when needed.
-# Flexible configuration options provide tailored backup routines catering to specific requirements, thereby guaranteeing data integrity and availability.
+# Backups
+# The `minecraft-server-data-backups` folder, holding all server backups,
+# will be automatically created in the same directory as `minecraft-server-docker-compose.yml` upon the server's initial startup.
 
 # Author
 # I’m Vladimir Mikhalev, the Docker Captain, but my friends can call me Valdemar.
@@ -105,15 +70,11 @@ networks:
   minecraft-server-network:
     external: true
 
-volumes:
-  minecraft-server-data:
-  minecraft-server-data-backups:
-
 services:
   minecraft-server:
     image: ${MINECRAFT_SERVER_IMAGE_TAG}
     volumes:
-      - minecraft-server-data:${DATA_PATH}
+      - ./minecraft-server-data:${DATA_PATH}
       - ./plugins:/plugins:ro
     environment:
       EULA: ${MINECRAFT_SERVER_EULA}
@@ -169,8 +130,8 @@ services:
       INITIAL_DELAY: ${MINECRAFT_SERVER_INITIAL_DELAY}
       TZ: ${MINECRAFT_SERVER_SERVER_TIMEZONE}
     volumes:
-    - minecraft-server-data:${DATA_PATH}:ro
-    - minecraft-server-data-backups:${MINECRAFT_SERVER_BACKUPS_PATH}
+    - ./minecraft-server-data:${DATA_PATH}:ro
+    - ./minecraft-server-data-backups:${MINECRAFT_SERVER_BACKUPS_PATH}
     networks:
       - minecraft-server-network
     restart: unless-stopped

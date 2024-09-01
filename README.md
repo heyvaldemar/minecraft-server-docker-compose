@@ -2,6 +2,8 @@
 
 📙 The complete installation guide is available on my [website](https://www.heyvaldemar.com/install-minecraft-server-using-docker-compose/).
 
+💡 For details on deploying the Minecraft Proxy (not the server), check out this link: [Minecraft Proxy Using Docker Compose](https://github.com/heyvaldemar/minecraft-server-docker-compose/).
+
 ❗ Change variables in the `.env` to meet your requirements.
 
 💡 Note that the `.env` file and `plugins` folder should be in the same directory as `minecraft-server-docker-compose.yml`.
@@ -45,27 +47,7 @@ MINECRAFT_SERVER_CONTAINER=$(docker ps -aqf "name=minecraft-server-minecraft-ser
 
 # Backups
 
-The `backups` container in the configuration ensures a consistent backup routine for the Minecraft server. Here's a detailed breakdown:
-
-- **Connection to Minecraft Server**: 
-  - The container communicates with the main Minecraft server through RCON (Remote Console) for server management. 
-  - Specified by: `RCON_HOST`
-
-- **Backup Schedule**: 
-  - Determines the frequency of backups.
-  - Specified by: `BACKUP_INTERVAL`
-
-- **Backup Pruning**: 
-  - Older backups are removed periodically to manage storage space.
-  - Specified by: `PRUNE_BACKUPS_DAYS`
-
-- **Initial Delay**: 
-  - The container waits for a defined time before starting the backup routine.
-  - Specified by: `INITIAL_DELAY`
-
-- **Backup Storage**: 
-  - Defines the source of server data and backup storage location.
-  - Backup location: `MINECRAFT_SERVER_BACKUPS_PATH`
+The `minecraft-server-data-backups` folder, holding all server backups, will be automatically created in the same directory as `minecraft-server-docker-compose.yml` upon the server's initial startup.
 
 # Author
 
