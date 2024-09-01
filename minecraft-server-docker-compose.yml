@@ -1,7 +1,7 @@
 # Minecraft Server Using Docker Compose
 
 # The complete installation guide is available on my website https://www.heyvaldemar.com/install-minecraft-server-using-docker-compose/
-# For details on deploying the Minecraft Proxy, check out this link https://github.com/heyvaldemar/minecraft-server-docker-compose/
+# For details on deploying the Minecraft Proxy, check out this link https://github.com/heyvaldemar/minecraft-server-proxy-docker-compose/
 
 # Change variables in the `.env` to meet your requirements.
 # Note that the `.env` file and `plugins` folder should be in the same directory as `minecraft-server-docker-compose.yml`.
