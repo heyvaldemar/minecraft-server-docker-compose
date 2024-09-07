@@ -1,0 +1,52 @@
+name: Deployment Verification
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  deploy-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Create necessary Docker networks
+      run: |
+        docker network create minecraft-server-network || true
+
+    - name: Start up services using Docker Compose
+      run: docker compose -f minecraft-server-docker-compose.yml -p minecraft-server up -d
+
+    - name: Modify /etc/hosts for internal routing
+      run: |
+        echo "127.0.0.1 minecraft-server.heyvaldemar.net" | sudo tee -a /etc/hosts
+
+    - name: Install Python and mcstatus
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3-pip
+        pip3 install mcstatus
+
+    - name: Check Minecraft Server status
+      run: |
+        mcstatus minecraft-server.heyvaldemar.net:25565 status
+
+    - name: Print Docker Compose services status
+      run: docker ps
+
+    - name: Inspect Network Configuration
+      run: |
+        docker network inspect minecraft-server-network
+
+    - name: Shutdown Docker Compose services
+      if: always()
+      run: docker compose -f minecraft-server-docker-compose.yml -p minecraft-server down
