@@ -1,136 +1,161 @@
-# Minecraft Server Using Docker Compose
+# Minecraft Server (Paper) — Docker Compose
 
-[![Deployment Verification](https://github.com/heyvaldemar/minecraft-server-docker-compose/actions/workflows/00-deployment-verification.yml/badge.svg)](https://github.com/heyvaldemar/minecraft-server-docker-compose/actions)
+[![Deployment Verification](https://github.com/heyvaldemar/minecraft-server-docker-compose/actions/workflows/deployment-verification.yml/badge.svg?branch=main)](https://github.com/heyvaldemar/minecraft-server-docker-compose/actions/workflows/deployment-verification.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-The badge displayed on my repository indicates the status of the deployment verification workflow as executed on the latest commit to the main branch.
+## Contents
 
-**Passing**: This means the most recent commit has successfully passed all deployment checks, confirming that the Docker Compose setup functions correctly as designed.
+- [Why this stack?](#why-this-stack)
+- [Prerequisites](#prerequisites)
+- [Getting started](#getting-started)
+- [Features](#features)
+- [Plugins](#plugins)
+- [Supply chain trust](#supply-chain-trust)
+- [Production checklist](#production-checklist)
+- [Backups](#backups)
+- [Testing](#testing)
+- [About the maintainer](#about-the-maintainer)
 
-📙 The complete installation guide is available on my [website](https://www.heyvaldemar.com/install-minecraft-server-using-docker-compose/).
+This repository deploys a **Paper Minecraft server** with automatic plugin installation (Modrinth + direct URLs, Geyser/Floodgate for Bedrock crossplay out of the box) and a scheduled **world backup container**. One `docker compose up` away from a survival server your friends can join.
 
-💡 For details on deploying the Minecraft Proxy, check out this link: [Minecraft Server Proxy Using Docker Compose](https://github.com/heyvaldemar/minecraft-server-proxy-docker-compose/).
+📙 Full narrative installation guide on the blog: [heyvaldemar.com/install-minecraft-server-using-docker-compose/](https://www.heyvaldemar.com/install-minecraft-server-using-docker-compose/).
 
-❗ Change variables in the `.env` to meet your requirements.
+## Why this stack?
 
-💡 Note that the `.env` file and `plugins` folder should be in the same directory as `minecraft-server-docker-compose.yml`.
+| Need | This stack | Manual install | Other compose examples |
+|------|-----------|----------------|------------------------|
+| Ready to deploy in <10 min | ✅ | ❌ java, jars, systemd | Often |
+| Plugins auto-installed on start | ✅ Modrinth + URL lists | Manual downloads | Rare |
+| Bedrock crossplay (Geyser/Floodgate) preconfigured | ✅ | Manual setup | Rare |
+| Scheduled world backups + pruning | ✅ RCON-coordinated `mc-backup` | Manual cron + save-off dance | Rare |
+| Upstream images pinned by `sha256` digest | ✅ | N/A | Almost never (usually `latest`) |
+| Weekly pin-freshness check in CI | ✅ | N/A | Rare |
+| CI-verified deployment on every push | ✅ boots a real server | N/A | Rare |
+| Every setting tunable via env | ✅ 40+ knobs with sane defaults | server.properties by hand | Varies |
 
-Create a network for your services before deploying the configuration using the command:
+Two moving parts (server + backups sidecar). The heavy lifting comes from the excellent [`itzg/minecraft-server`](https://github.com/itzg/docker-minecraft-server) and [`itzg/mc-backup`](https://github.com/itzg/docker-mc-backup) images, pinned and wired together.
 
-`docker network create minecraft-server-network`
+## Prerequisites
 
-Deploy Minecraft Server using Docker Compose:
+- **A server** (Linux recommended) with Docker Engine 24+ and Docker Compose 2.20+.
+- **~3 GB free RAM** (2 GB heap default + overhead) and a CPU core or two; more for many players or heavy plugins.
+- **Port 25565 open** (TCP) on the firewall for Java Edition; Geyser's Bedrock port needs extra config if you use it beyond LAN.
+- **Disk for the world and backups** — worlds grow; the default retention keeps 7 days of archives.
 
-`docker compose -f minecraft-server-docker-compose.yml -p minecraft-server up -d`
+## Getting started
 
-You can check the Minecraft Server status using the commands:
+```bash
+# 1. Clone
+git clone https://github.com/heyvaldemar/minecraft-server-docker-compose
+cd minecraft-server-docker-compose
 
+# 2. Create the Docker network the stack expects
+docker network create minecraft-server-network
+
+# 3. Copy the environment template and set the RCON password
+cp .env.example .env
+$EDITOR .env
+# ^ Required: MINECRAFT_SERVER_RCON_PASSWORD. Everything else has defaults.
+#   Keeping MINECRAFT_SERVER_EULA=true means you accept the Minecraft EULA.
+
+# 4. Deploy
+docker compose -f minecraft-server-docker-compose.yml -p minecraft up -d
 ```
-MINECRAFT_SERVER_CONTAINER=$(docker ps -aqf "name=minecraft-server-minecraft-server") \
-&& docker exec -it $MINECRAFT_SERVER_CONTAINER mc-monitor status
+
+First boot downloads the Paper jar and the configured plugins, then generates the world — give it a few minutes. Players connect to `your-server-ip:25565`.
+
+### What success looks like
+
+```bash
+# The server container turns healthy once it accepts connections:
+docker compose -f minecraft-server-docker-compose.yml -p minecraft ps
+
+# RCON works (lists online players):
+docker compose -p minecraft exec minecraft-server rcon-cli list
+
+# Watch the boot log:
+docker compose -p minecraft logs -f minecraft-server
+
+# Backups land in ./minecraft-server-data-backups on the schedule:
+ls minecraft-server-data-backups/
 ```
 
-## Minecraft Servers Logs
+### Common first-deploy issues
 
-You can check logs using the commands:
+- **Container exits immediately with an EULA message.** `MINECRAFT_SERVER_EULA` must be `true` (you are accepting the [Minecraft EULA](https://www.minecraft.net/eula)).
+- **`docker compose up` fails with `set in .env`.** `MINECRAFT_SERVER_RCON_PASSWORD` is empty — generate one per `.env.example`.
+- **`network minecraft-server-network not found`.** Step 2 was skipped.
+- **Slow first start.** Paper jar + plugins download once; later starts are much faster.
 
+### Apply `.env` or compose-file changes
+
+```bash
+docker compose -f minecraft-server-docker-compose.yml -p minecraft up -d --force-recreate
 ```
-MINECRAFT_SERVER_CONTAINER=$(docker ps -aqf "name=minecraft-server-minecraft-server") \
-&& docker logs $MINECRAFT_SERVER_CONTAINER
-```
 
-## Minecraft Server Management
+## Features
 
-Apply new configuration after a change in the `minecraft-server-docker-compose.yml` or `.env` using the command:
+- **Paper server** (`TYPE=PAPER`, `VERSION=LATEST` by default — pin a game version via `MINECRAFT_SERVER_VERSION` for stability).
+- **Automatic plugin install** from Modrinth project slugs and direct download URLs, with dependency resolution.
+- **Bedrock crossplay ready** — Floodgate ships in the default plugin list; pair with Geyser to let Bedrock players join.
+- **RCON enabled** for admin commands (`rcon-cli` inside the container) and coordinated backups.
+- **RCON-coordinated backups** — `mc-backup` runs `save-off`/`save-all` around each archive so world saves are consistent, then prunes archives older than the retention window.
+- **40+ game settings** (mode, difficulty, view distance, whitelist, ops, world type…) exposed as env vars with compose-level defaults.
+- **Local bind mounts** — world data in `./minecraft-server-data`, archives in `./minecraft-server-data-backups`, custom plugin jars in `./plugins`.
 
-`docker compose -f minecraft-server-docker-compose.yml -p minecraft up -d`
+## Plugins
 
-Connect to the Minecraft server command-line interface using the command:
+Two mechanisms, combinable:
 
-```
-MINECRAFT_SERVER_CONTAINER=$(docker ps -aqf "name=minecraft-server-minecraft-server") \
-&& docker exec -i $MINECRAFT_SERVER_CONTAINER rcon-cli
-```
+- `MINECRAFT_SERVER_MODRINTH_PROJECTS` — comma-separated [Modrinth](https://modrinth.com/plugins) slugs (default: `viaversion,viabackwards,skinsrestorer`), with `MODRINTH_DOWNLOAD_DEPENDENCIES=required`.
+- `MINECRAFT_SERVER_PLUGINS` — newline/comma-separated direct jar URLs (default: latest Floodgate build).
+- Drop `.jar` files into `./plugins/` for anything not available by URL.
+
+Plugins are re-resolved on every container start, so version bumps arrive with a `--force-recreate`.
+
+## Supply chain trust
+
+This repository is a **deployment template** orchestrating two upstream images:
+
+- [`itzg/minecraft-server`](https://github.com/itzg/docker-minecraft-server) — the de-facto standard Minecraft server image
+- [`itzg/mc-backup`](https://github.com/itzg/docker-mc-backup) — its companion backup sidecar
+
+Both are pinned to `tag@sha256:<digest>` as interpolation defaults in the compose file's `x-images` block — `git pull` alone delivers the version combination this repository has tested. Setting an `*_IMAGE_TAG` variable in `.env` overrides the default. The weekly `check-pin-freshness` CI job re-resolves both pinned tags against Docker Hub and compares the pinned versions against the latest itzg releases — any drift fails the run and notifies the maintainer. GitHub Actions are pinned by commit SHA; Dependabot keeps those fresh.
+
+Note the deliberate trade-off: the **image** is pinned for reproducibility, while `VERSION=LATEST` floats the **game version** by default. Pin `MINECRAFT_SERVER_VERSION` too if plugin compatibility matters to you.
+
+## Production checklist
+
+- [ ] **Strong RCON password** — it is remote admin access to the server console.
+- [ ] **Do not expose 25575 (RCON)** beyond the Docker network; the compose file does not publish it — keep it that way.
+- [ ] **Set `MINECRAFT_SERVER_OPS`** to your username(s) so you can moderate in-game.
+- [ ] **Consider a whitelist** (`MINECRAFT_SERVER_WHITELIST`) for private servers; `ONLINE_MODE=true` (default) keeps authentication against Mojang.
+- [ ] **Off-host backups** — `./minecraft-server-data-backups` lives on the same disk as the world. Sync it elsewhere (restic, rclone, S3) for real disaster recovery.
+- [ ] **Pin the game version** before inviting players if you rely on specific plugins.
 
 ## Backups
 
-The `minecraft-server-data-backups` folder, holding all server backups, will be automatically created in the same directory as `minecraft-server-docker-compose.yml` upon the server's initial startup.
+The `mc-backup` sidecar coordinates with the server over RCON: `save-off` → `save-all` → tar the world → `save-on`, on an interval (`MINECRAFT_SERVER_BACKUP_INTERVAL`, default 23h), pruning archives older than `MINECRAFT_SERVER_PRUNE_BACKUPS_DAYS` (default 7). Archives are plain `.tar.gz` files in `./minecraft-server-data-backups` — restore by stopping the stack, extracting an archive over `./minecraft-server-data`, and starting again.
 
-## Author
+## Testing
 
-hey everyone,
+The [Deployment Verification](https://github.com/heyvaldemar/minecraft-server-docker-compose/actions/workflows/deployment-verification.yml?query=branch%3Amain) workflow runs on every push, pull request, and every Monday at 06:00 UTC:
 
-💾 I’ve been in the IT game for over 20 years, cutting my teeth with some big names like [IBM](https://www.linkedin.com/in/heyvaldemar/), [Thales](https://www.linkedin.com/in/heyvaldemar/), and [Amazon](https://www.linkedin.com/in/heyvaldemar/). These days, I wear the hat of a DevOps Consultant and Team Lead, but what really gets me going is Docker and container technology - I’m kind of obsessed!
+1. **Lint** — actionlint on the workflow.
+2. **Trivy scans** of both pinned images (CRITICAL/HIGH, SARIF to the Security tab).
+3. **Pin freshness** (weekly/manual) — digest drift against Docker Hub plus release-lag checks against both itzg upstreams.
+4. **Deploy-and-test** — boots a real Paper server with ephemeral credentials, waits for the built-in healthcheck to pass (jar + plugin download + world generation), proves RCON answers `list`, and requires a backup archive to appear before the run may pass.
 
-💛 I have my own IT [blog](https://www.heyvaldemar.com/), where I’ve built a [community](https://discord.gg/AJQGCCBcqf) of DevOps enthusiasts who share my love for all things Docker, containers, and IT technologies in general. And to make sure everyone can jump on this awesome DevOps train, I write super detailed guides (seriously, they’re foolproof!) that help even newbies deploy and manage complex IT solutions.
+A green run is the authoritative proof that the shipped configuration produces a joinable server — not just a started container.
 
-🚀 My dream is to empower every single person in the DevOps community to squeeze every last drop of potential out of Docker and container tech.
+---
 
-🐳 As a [Docker Captain](https://www.docker.com/captains/vladimir-mikhalev/), I’m stoked to share my knowledge, experiences, and a good dose of passion for the tech. My aim is to encourage learning, innovation, and growth, and to inspire the next generation of IT whizz-kids to push Docker and container tech to its limits.
-
-Let’s do this together!
-
-## My 2D Portfolio
-
-🕹️ Click into [sre.gg](https://www.sre.gg/) — my virtual space is a 2D pixel-art portfolio inviting you to interact with elements that encapsulate the milestones of my DevOps career.
-
-## My Courses
-
-🎓 Dive into my [comprehensive IT courses](https://www.heyvaldemar.com/courses/) designed for enthusiasts and professionals alike. Whether you're looking to master Docker, conquer Kubernetes, or advance your DevOps skills, my courses provide a structured pathway to enhancing your technical prowess.
-
-🔑 [Each course](https://www.udemy.com/user/heyvaldemar/) is built from the ground up with real-world scenarios in mind, ensuring that you gain practical knowledge and hands-on experience. From beginners to seasoned professionals, there's something here for everyone to elevate their IT skills.
-
-## My Services
-
-💼 Take a look at my [service catalog](https://www.heyvaldemar.com/services/) and find out how we can make your technological life better. Whether it's increasing the efficiency of your IT infrastructure, advancing your career, or expanding your technological horizons — I'm here to help you achieve your goals. From DevOps transformations to building gaming computers — let's make your technology unparalleled!
-
-## Patreon Exclusives
-
-🏆 Join my [Patreon](https://www.patreon.com/heyvaldemar) and dive deep into the world of Docker and DevOps with exclusive content tailored for IT enthusiasts and professionals. As your experienced guide, I offer a range of membership tiers designed to suit everyone from newbies to IT experts.
-
-## My Recommendations
-
-📕 Check out my collection of [essential DevOps books](https://kit.co/heyvaldemar/essential-devops-books)\
-🖥️ Check out my [studio streaming and recording kit](https://kit.co/heyvaldemar/my-studio-streaming-and-recording-kit)\
-📡 Check out my [streaming starter kit](https://kit.co/heyvaldemar/streaming-starter-kit)
-
-## Follow Me
-
-🎬 [YouTube](https://www.youtube.com/channel/UCf85kQ0u1sYTTTyKVpxrlyQ?sub_confirmation=1)\
-🐦 [X / Twitter](https://twitter.com/heyvaldemar)\
-🎨 [Instagram](https://www.instagram.com/heyvaldemar/)\
-🐘 [Mastodon](https://mastodon.social/@heyvaldemar)\
-🧵 [Threads](https://www.threads.net/@heyvaldemar)\
-🎸 [Facebook](https://www.facebook.com/heyvaldemarFB/)\
-🧊 [Bluesky](https://bsky.app/profile/heyvaldemar.bsky.social)\
-🎥 [TikTok](https://www.tiktok.com/@heyvaldemar)\
-💻 [LinkedIn](https://www.linkedin.com/in/heyvaldemar/)\
-📣 [daily.dev Squad](https://app.daily.dev/squads/devopscompass)\
-🧩 [LeetCode](https://leetcode.com/u/heyvaldemar/)\
-🐈 [GitHub](https://github.com/heyvaldemar)
-
-## Community of IT Experts
-
-👾 [Discord](https://discord.gg/AJQGCCBcqf)
-
-## Refill My Coffee Supplies
-
-💖 [PayPal](https://www.paypal.com/paypalme/heyvaldemarCOM)\
-🏆 [Patreon](https://www.patreon.com/heyvaldemar)\
-💎 [GitHub](https://github.com/sponsors/heyvaldemar)\
-🥤 [BuyMeaCoffee](https://www.buymeacoffee.com/heyvaldemar)\
-🍪 [Ko-fi](https://ko-fi.com/heyvaldemar)
-
-🌟 **Bitcoin (BTC):** bc1q2fq0k2lvdythdrj4ep20metjwnjuf7wccpckxc\
-🔹 **Ethereum (ETH):** 0x76C936F9366Fad39769CA5285b0Af1d975adacB8\
-🪙 **Binance Coin (BNB):** bnb1xnn6gg63lr2dgufngfr0lkq39kz8qltjt2v2g6\
-💠 **Litecoin (LTC):** LMGrhx8Jsx73h1pWY9FE8GB46nBytjvz8g
+## About the maintainer
 
 <div align="center">
 
-### Show some 💜 by starring some of the [repositories](https://github.com/heyValdemar?tab=repositories)!
+**Maintained by [Vladimir Mikhalev](https://github.com/heyvaldemar)** — Docker Captain · IBM Champion · AWS Community Builder
 
-![octocat](https://user-images.githubusercontent.com/10498744/210113490-e2fad07f-4488-4da8-a656-b9abbdd8cb26.gif)
+[YouTube](https://www.youtube.com/channel/UCf85kQ0u1sYTTTyKVpxrlyQ?sub_confirmation=1) · [Blog](https://heyvaldemar.com) · [LinkedIn](https://www.linkedin.com/in/heyvaldemar/)
 
 </div>
-
-![footer](https://user-images.githubusercontent.com/10498744/210157572-1fca0242-8af2-46a6-bfa3-666ffd40ebde.svg)
