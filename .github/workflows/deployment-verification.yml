@@ -19,6 +19,11 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  # Authenticated requests avoid the anonymous API rate limit that shared
+  # GitHub runners regularly hit (api.github.com answers 403 otherwise).
+  GH_API_TOKEN: ${{ github.token }}
+
 jobs:
   lint:
     name: Lint workflow YAML
@@ -129,7 +134,7 @@ jobs:
             pin="$(grep -oE "\\\$\\{${var}:-[^}]+\\}" minecraft-server-docker-compose.yml | head -1 | sed -E "s/^\\\$\\{${var}:-//; s/\\}$//")"
             ref="${pin%%@*}"
             pinned_version="${ref##*:}"
-            latest="$(curl -fsSL --retry 3 "https://api.github.com/repos/${gh_repo}/releases/latest" | jq -r .tag_name)"
+            latest="$(curl -fsSL --retry 3 -H "Authorization: Bearer $GH_API_TOKEN" "https://api.github.com/repos/${gh_repo}/releases/latest" | jq -r .tag_name)"
             latest="${latest#v}"
             if [ -z "$latest" ] || [ "$latest" = "null" ]; then
               echo "::error::Could not determine the latest ${gh_repo} release"
