@@ -120,7 +120,7 @@ This repository is a **deployment template** orchestrating two upstream images:
 - [`itzg/minecraft-server`](https://github.com/itzg/docker-minecraft-server) — the de-facto standard Minecraft server image
 - [`itzg/mc-backup`](https://github.com/itzg/docker-mc-backup) — its companion backup sidecar
 
-Both are pinned to `tag@sha256:<digest>` as interpolation defaults in the compose file's `x-images` block — `git pull` alone delivers the version combination this repository has tested. Setting an `*_IMAGE_TAG` variable in `.env` overrides the default. The weekly `check-pin-freshness` CI job re-resolves both pinned tags against Docker Hub and compares the pinned versions against the latest itzg releases — any drift fails the run and notifies the maintainer. GitHub Actions are pinned by commit SHA; Dependabot keeps those fresh.
+Both are pinned to `tag@sha256:<digest>` as interpolation defaults in the compose file's `x-images` block — `git pull` alone delivers the version combination this repository has tested. Setting an `*_IMAGE_TAG` variable in `.env` overrides the default. The daily `check-pin-freshness` CI job re-resolves both pinned tags against Docker Hub and compares the pinned versions against the latest itzg releases — any drift fails the run and notifies the maintainer. GitHub Actions are pinned by commit SHA; Dependabot keeps those fresh.
 
 Note the deliberate trade-off: the **image** is pinned for reproducibility, while `VERSION=LATEST` floats the **game version** by default. Pin `MINECRAFT_SERVER_VERSION` too if plugin compatibility matters to you.
 
@@ -163,11 +163,11 @@ Every service carries memory and CPU limits plus reservations as compose-level d
 
 ## Testing
 
-The [Deployment Verification](https://github.com/heyvaldemar/minecraft-server-docker-compose/actions/workflows/deployment-verification.yml?query=branch%3Amain) workflow runs on every push, pull request, and every Monday at 06:00 UTC:
+The [Deployment Verification](https://github.com/heyvaldemar/minecraft-server-docker-compose/actions/workflows/deployment-verification.yml?query=branch%3Amain) workflow runs on every push, pull request, and every day at 06:00 UTC:
 
 1. **Lint** — actionlint on the workflow.
 2. **Trivy scans** of both pinned images (CRITICAL/HIGH, SARIF to the Security tab).
-3. **Pin freshness** (weekly/manual) — digest drift against Docker Hub plus release-lag checks against both itzg upstreams.
+3. **Pin freshness** (daily/manual) — digest drift against Docker Hub plus release-lag checks against both itzg upstreams.
 4. **Deploy-and-test** — boots a real Paper server with ephemeral credentials, waits for the built-in healthcheck to pass (jar + plugin download + world generation), proves RCON answers `list`, and requires a backup archive to appear before the run may pass.
 
 A green run is the authoritative proof that the shipped configuration produces a joinable server — not just a started container.
