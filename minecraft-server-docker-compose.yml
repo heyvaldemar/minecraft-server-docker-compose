@@ -16,6 +16,16 @@ networks:
 services:
   minecraft-server:
     image: *minecraft-image
+    # Resource limits as .env-overridable defaults (e.g. MINECRAFT_SERVER_MEMORY_LIMIT=2g);
+    # the override survives every git pull.
+    deploy:
+      resources:
+        limits:
+          memory: ${MINECRAFT_SERVER_MEMORY_LIMIT:-2g}
+          cpus: "${MINECRAFT_SERVER_CPU_LIMIT:-2.0}"
+        reservations:
+          memory: ${MINECRAFT_SERVER_MEMORY_RESERVATION:-256m}
+          cpus: "${MINECRAFT_SERVER_CPU_RESERVATION:-0.5}"
     volumes:
       - ./minecraft-server-data:${DATA_PATH:-/data}
       - ./plugins:/plugins:ro
@@ -64,6 +74,16 @@ services:
 
   backups:
     image: *mc-backup-image
+    # Resource limits as .env-overridable defaults (e.g. MINECRAFT_SERVER_BACKUPS_MEMORY_LIMIT=2g);
+    # the override survives every git pull.
+    deploy:
+      resources:
+        limits:
+          memory: ${MINECRAFT_SERVER_BACKUPS_MEMORY_LIMIT:-256m}
+          cpus: "${MINECRAFT_SERVER_BACKUPS_CPU_LIMIT:-0.5}"
+        reservations:
+          memory: ${MINECRAFT_SERVER_BACKUPS_MEMORY_RESERVATION:-32m}
+          cpus: "${MINECRAFT_SERVER_BACKUPS_CPU_RESERVATION:-0.1}"
     environment:
       RCON_HOST: minecraft-server
       RCON_PORT: ${MINECRAFT_SERVER_RCON_PORT:-25575}
