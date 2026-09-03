@@ -122,6 +122,8 @@ This repository is a **deployment template** orchestrating two upstream images:
 
 Both are pinned to `tag@sha256:<digest>` as interpolation defaults in the compose file's `x-images` block: `git pull` alone delivers the version combination this repository has tested. Setting an `*_IMAGE_TAG` variable in `.env` overrides the default. The daily `check-pin-freshness` CI job re-resolves both pinned tags against Docker Hub and compares the pinned versions against the latest itzg releases: any drift fails the run and notifies the maintainer. GitHub Actions are pinned by commit SHA; Dependabot keeps those fresh.
 
+Two override levels exist per image. `<PREFIX>_IMAGE_VERSION` in `.env` swaps only the version of that image (Compose then pulls the tag, without a digest) and leaves every other pin as tested; `<PREFIX>_IMAGE_TAG` replaces the whole reference, digest included. The variable names are listed in `.env.example`. Nested defaults need Docker Compose v2.5 or newer (2022); v2.0 to v2.4 leave the inner `${...}` unexpanded and `docker compose up` fails with an invalid reference instead of deploying something unexpected.
+
 Note the deliberate trade-off: the **image** is pinned for reproducibility, while `VERSION=LATEST` floats the **game version** by default. Pin `MINECRAFT_SERVER_VERSION` too if plugin compatibility matters to you.
 
 ## Production checklist
