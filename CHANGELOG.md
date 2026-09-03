@@ -25,6 +25,10 @@ _(no unreleased changes yet)_
   `docker compose up` fails with an invalid reference instead of
   deploying something unexpected.
 
+### Changed
+
+- `itzg/mc-backup` 2026.8.2 to 2026.9.0.
+
 ## [1.3.0] - 2026-09-02
 
 ### Security
