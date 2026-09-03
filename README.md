@@ -1,4 +1,4 @@
-# Minecraft Server (Paper) — Docker Compose
+# Minecraft Server (Paper) on Docker Compose
 
 [![Deployment Verification](https://github.com/heyvaldemar/minecraft-server-docker-compose/actions/workflows/deployment-verification.yml/badge.svg?branch=main)](https://github.com/heyvaldemar/minecraft-server-docker-compose/actions/workflows/deployment-verification.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -40,7 +40,7 @@ Two moving parts (server + backups sidecar). The heavy lifting comes from the ex
 - **A server** (Linux recommended) with Docker Engine 24+ and Docker Compose 2.20+.
 - **~3 GB free RAM** (2 GB heap default + overhead) and a CPU core or two; more for many players or heavy plugins.
 - **Port 25565 open** (TCP) on the firewall for Java Edition; Geyser's Bedrock port needs extra config if you use it beyond LAN.
-- **Disk for the world and backups** — worlds grow; the default retention keeps 7 days of archives.
+- **Disk for the world and backups**: worlds grow; the default retention keeps 7 days of archives.
 
 ## Getting started
 
@@ -62,7 +62,7 @@ $EDITOR .env
 docker compose -f minecraft-server-docker-compose.yml -p minecraft up -d
 ```
 
-First boot downloads the Paper jar and the configured plugins, then generates the world — give it a few minutes. Players connect to `your-server-ip:25565`.
+First boot downloads the Paper jar and the configured plugins, then generates the world. Give it a few minutes. Players connect to `your-server-ip:25565`.
 
 ### What success looks like
 
@@ -83,7 +83,7 @@ ls minecraft-server-data-backups/
 ### Common first-deploy issues
 
 - **Container exits immediately with an EULA message.** `MINECRAFT_SERVER_EULA` must be `true` (you are accepting the [Minecraft EULA](https://www.minecraft.net/eula)).
-- **`docker compose up` fails with `set in .env`.** `MINECRAFT_SERVER_RCON_PASSWORD` is empty — generate one per `.env.example`.
+- **`docker compose up` fails with `set in .env`.** `MINECRAFT_SERVER_RCON_PASSWORD` is empty: generate one per `.env.example`.
 - **`network minecraft-server-network not found`.** Step 2 was skipped.
 - **Slow first start.** Paper jar + plugins download once; later starts are much faster.
 
@@ -95,20 +95,20 @@ docker compose -f minecraft-server-docker-compose.yml -p minecraft up -d --force
 
 ## Features
 
-- **Paper server** (`TYPE=PAPER`, `VERSION=LATEST` by default — pin a game version via `MINECRAFT_SERVER_VERSION` for stability).
+- **Paper server** (`TYPE=PAPER`, `VERSION=LATEST` by default: pin a game version via `MINECRAFT_SERVER_VERSION` for stability).
 - **Automatic plugin install** from Modrinth project slugs and direct download URLs, with dependency resolution.
-- **Bedrock crossplay ready** — Floodgate ships in the default plugin list; pair with Geyser to let Bedrock players join.
+- **Bedrock crossplay ready**: Floodgate ships in the default plugin list; pair with Geyser to let Bedrock players join.
 - **RCON enabled** for admin commands (`rcon-cli` inside the container) and coordinated backups.
-- **RCON-coordinated backups** — `mc-backup` runs `save-off`/`save-all` around each archive so world saves are consistent, then prunes archives older than the retention window.
+- **RCON-coordinated backups**: `mc-backup` runs `save-off`/`save-all` around each archive so world saves are consistent, then prunes archives older than the retention window.
 - **40+ game settings** (mode, difficulty, view distance, whitelist, ops, world type…) exposed as env vars with compose-level defaults.
-- **Local bind mounts** — world data in `./minecraft-server-data`, archives in `./minecraft-server-data-backups`, custom plugin jars in `./plugins`.
+- **Local bind mounts**: world data in `./minecraft-server-data`, archives in `./minecraft-server-data-backups`, custom plugin jars in `./plugins`.
 
 ## Plugins
 
 Two mechanisms, combinable:
 
-- `MINECRAFT_SERVER_MODRINTH_PROJECTS` — comma-separated [Modrinth](https://modrinth.com/plugins) slugs (default: `viaversion,viabackwards,skinsrestorer`), with `MODRINTH_DOWNLOAD_DEPENDENCIES=required`.
-- `MINECRAFT_SERVER_PLUGINS` — newline/comma-separated direct jar URLs (default: latest Floodgate build).
+- `MINECRAFT_SERVER_MODRINTH_PROJECTS`: comma-separated [Modrinth](https://modrinth.com/plugins) slugs (default: `viaversion,viabackwards,skinsrestorer`), with `MODRINTH_DOWNLOAD_DEPENDENCIES=required`.
+- `MINECRAFT_SERVER_PLUGINS`: newline/comma-separated direct jar URLs (default: latest Floodgate build).
 - Drop `.jar` files into `./plugins/` for anything not available by URL.
 
 Plugins are re-resolved on every container start, so version bumps arrive with a `--force-recreate`.
@@ -117,25 +117,25 @@ Plugins are re-resolved on every container start, so version bumps arrive with a
 
 This repository is a **deployment template** orchestrating two upstream images:
 
-- [`itzg/minecraft-server`](https://github.com/itzg/docker-minecraft-server) — the de-facto standard Minecraft server image
-- [`itzg/mc-backup`](https://github.com/itzg/docker-mc-backup) — its companion backup sidecar
+- [`itzg/minecraft-server`](https://github.com/itzg/docker-minecraft-server): the de-facto standard Minecraft server image
+- [`itzg/mc-backup`](https://github.com/itzg/docker-mc-backup): its companion backup sidecar
 
-Both are pinned to `tag@sha256:<digest>` as interpolation defaults in the compose file's `x-images` block — `git pull` alone delivers the version combination this repository has tested. Setting an `*_IMAGE_TAG` variable in `.env` overrides the default. The daily `check-pin-freshness` CI job re-resolves both pinned tags against Docker Hub and compares the pinned versions against the latest itzg releases — any drift fails the run and notifies the maintainer. GitHub Actions are pinned by commit SHA; Dependabot keeps those fresh.
+Both are pinned to `tag@sha256:<digest>` as interpolation defaults in the compose file's `x-images` block: `git pull` alone delivers the version combination this repository has tested. Setting an `*_IMAGE_TAG` variable in `.env` overrides the default. The daily `check-pin-freshness` CI job re-resolves both pinned tags against Docker Hub and compares the pinned versions against the latest itzg releases: any drift fails the run and notifies the maintainer. GitHub Actions are pinned by commit SHA; Dependabot keeps those fresh.
 
 Note the deliberate trade-off: the **image** is pinned for reproducibility, while `VERSION=LATEST` floats the **game version** by default. Pin `MINECRAFT_SERVER_VERSION` too if plugin compatibility matters to you.
 
 ## Production checklist
 
-- [ ] **Strong RCON password** — it is remote admin access to the server console.
-- [ ] **Do not expose 25575 (RCON)** beyond the Docker network; the compose file does not publish it — keep it that way.
+- [ ] **Strong RCON password**: it is remote admin access to the server console.
+- [ ] **Do not expose 25575 (RCON)** beyond the Docker network; the compose file does not publish it: keep it that way.
 - [ ] **Set `MINECRAFT_SERVER_OPS`** to your username(s) so you can moderate in-game.
 - [ ] **Consider a whitelist** (`MINECRAFT_SERVER_WHITELIST`) for private servers; `ONLINE_MODE=true` (default) keeps authentication against Mojang.
-- [ ] **Off-host backups** — `./minecraft-server-data-backups` lives on the same disk as the world. Sync it elsewhere (restic, rclone, S3) for real disaster recovery.
+- [ ] **Off-host backups**: `./minecraft-server-data-backups` lives on the same disk as the world. Sync it elsewhere (restic, rclone, S3) for real disaster recovery.
 - [ ] **Pin the game version** before inviting players if you rely on specific plugins.
 
 ## Backups
 
-The `mc-backup` sidecar coordinates with the server over RCON: `save-off` → `save-all` → tar the world → `save-on`, on an interval (`MINECRAFT_SERVER_BACKUP_INTERVAL`, default 23h), pruning archives older than `MINECRAFT_SERVER_PRUNE_BACKUPS_DAYS` (default 7). Archives are plain `.tar.gz` files in `./minecraft-server-data-backups` — restore by stopping the stack, extracting an archive over `./minecraft-server-data`, and starting again.
+The `mc-backup` sidecar coordinates with the server over RCON: `save-off` → `save-all` → tar the world → `save-on`, on an interval (`MINECRAFT_SERVER_BACKUP_INTERVAL`, default 23h), pruning archives older than `MINECRAFT_SERVER_PRUNE_BACKUPS_DAYS` (default 7). Archives are plain `.tar.gz` files in `./minecraft-server-data-backups`: restore by stopping the stack, extracting an archive over `./minecraft-server-data`, and starting again.
 
 ## Unattended updates
 
@@ -153,13 +153,13 @@ Put it on a timer for hands-off minor/patch updates:
 17 5 * * *  /opt/minecraft-server-docker-compose/update.sh >> /var/log/minecraft-server-update.log 2>&1
 ```
 
-The script refuses to cross a MAJOR template version on its own — majors are breaking by definition and their release notes exist to be read. After reading them, `./update.sh --allow-major` performs the jump. It also refuses to touch a checkout with local modifications: your customization belongs in `.env`, which updates never overwrite.
+The script refuses to cross a MAJOR template version on its own. Majors are breaking by definition and their release notes exist to be read. After reading them, `./update.sh --allow-major` performs the jump. It also refuses to touch a checkout with local modifications: your customization belongs in `.env`, which updates never overwrite.
 
 This is deliberately a host-side script and not a container in the stack: an in-stack updater needs the Docker socket (root on the host) and turns "someone pushed to a repo" into "someone deployed to your machine" with no operator in the loop. A cron job under your own user updates only to tagged, CI-verified states and leaves the trust boundary where it was.
 
 ## Resource limits
 
-Every service carries memory and CPU limits plus reservations as compose-level defaults — the same values CI boots the stack under. Override any of them in `.env` (the knobs and their defaults are listed in `.env.example`, e.g. `TRAEFIK_MEMORY_LIMIT=512m`) and the override survives every `git pull`. If a service is OOM-killed under real load, `docker inspect <container> --format '{{.State.OOMKilled}}'` says so; raise its `_MEMORY_LIMIT` and recreate.
+Every service carries memory and CPU limits plus reservations as compose-level defaults, the same values CI boots the stack under. Override any of them in `.env` (the knobs and their defaults are listed in `.env.example`, e.g. `TRAEFIK_MEMORY_LIMIT=512m`) and the override survives every `git pull`. If a service is OOM-killed under real load, `docker inspect <container> --format '{{.State.OOMKilled}}'` says so; raise its `_MEMORY_LIMIT` and recreate.
 
 ## Container hardening
 
@@ -169,12 +169,12 @@ Every service runs with `security_opt: no-new-privileges:true`, so a process can
 
 The [Deployment Verification](https://github.com/heyvaldemar/minecraft-server-docker-compose/actions/workflows/deployment-verification.yml?query=branch%3Amain) workflow runs on every push, pull request, and every day at 06:00 UTC:
 
-1. **Lint** — actionlint on the workflow.
+1. **Lint**: actionlint on the workflow.
 2. **Trivy scans** of both pinned images (CRITICAL/HIGH, SARIF to the Security tab).
-3. **Pin freshness** (daily/manual) — digest drift against Docker Hub plus release-lag checks against both itzg upstreams.
-4. **Deploy-and-test** — boots a real Paper server with ephemeral credentials, waits for the built-in healthcheck to pass (jar + plugin download + world generation), proves RCON answers `list`, and requires a backup archive to appear before the run may pass.
+3. **Pin freshness** (daily/manual): digest drift against Docker Hub plus release-lag checks against both itzg upstreams.
+4. **Deploy-and-test**: boots a real Paper server with ephemeral credentials, waits for the built-in healthcheck to pass (jar + plugin download + world generation), proves RCON answers `list`, and requires a backup archive to appear before the run may pass.
 
-A green run is the authoritative proof that the shipped configuration produces a joinable server — not just a started container.
+A green run is the authoritative proof that the shipped configuration produces a joinable server, not just a started container.
 
 ---
 
@@ -182,7 +182,7 @@ A green run is the authoritative proof that the shipped configuration produces a
 
 <div align="center">
 
-**Maintained by [Vladimir Mikhalev](https://github.com/heyvaldemar)** — Docker Captain · IBM Champion · AWS Community Builder
+**Maintained by [Vladimir Mikhalev](https://github.com/heyvaldemar)** · Docker Captain · IBM Champion · AWS Community Builder
 
 [YouTube](https://www.youtube.com/channel/UCf85kQ0u1sYTTTyKVpxrlyQ?sub_confirmation=1) · [Blog](https://heyvaldemar.com) · [LinkedIn](https://www.linkedin.com/in/heyvaldemar/)
 

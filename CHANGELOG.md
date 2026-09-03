@@ -41,7 +41,7 @@ _(no unreleased changes yet)_
 
 ### Added
 
-- **`update.sh`** — unattended updates to the newest tagged release,
+- **`update.sh`**: unattended updates to the newest tagged release,
   and nothing else: a tag is cut only after CI has booted the pinned
   images and passed the smoke tests, so "update to the latest tag" means
   "update to a combination a machine has already run". It refuses to
@@ -58,7 +58,7 @@ v1.2.0.
 ### Security
 
 - **Images pinned by `tag@sha256:digest`**: `itzg/minecraft-server` and
-  `itzg/mc-backup` move from floating `latest` to the 2026.8.2 releases —
+  `itzg/mc-backup` move from floating `latest` to the 2026.8.2 releases:
   a `latest` pin made deployments unreproducible and updates invisible.
 - **RCON password untracked from git.** The tracked `.env` carried a
   generated-looking RCON password published on GitHub; rotate it if your
