@@ -16,7 +16,7 @@
 - [Testing](#testing)
 - [About the maintainer](#about-the-maintainer)
 
-This repository deploys a **Paper Minecraft server** with automatic plugin installation (Modrinth + direct URLs, Geyser/Floodgate for Bedrock crossplay out of the box) and a scheduled **world backup container**. One `docker compose up` away from a survival server your friends can join.
+This repository deploys a Paper Minecraft server with automatic plugin installation (Modrinth + direct URLs, Geyser/Floodgate for Bedrock crossplay out of the box) and a scheduled world backup container. One `docker compose up` away from a survival server your friends can join.
 
 📙 Full narrative installation guide on the blog: [heyvaldemar.com/install-minecraft-server-using-docker-compose/](https://www.heyvaldemar.com/install-minecraft-server-using-docker-compose/).
 
@@ -115,7 +115,7 @@ Plugins are re-resolved on every container start, so version bumps arrive with a
 
 ## Supply chain trust
 
-This repository is a **deployment template** orchestrating two upstream images:
+This repository is a deployment template orchestrating two upstream images:
 
 - [`itzg/minecraft-server`](https://github.com/itzg/docker-minecraft-server): the de-facto standard Minecraft server image
 - [`itzg/mc-backup`](https://github.com/itzg/docker-mc-backup): its companion backup sidecar
@@ -124,7 +124,7 @@ Both are pinned to `tag@sha256:<digest>` as interpolation defaults in the compos
 
 Two override levels exist per image. `<PREFIX>_IMAGE_VERSION` in `.env` swaps only the version of that image (Compose then pulls the tag, without a digest) and leaves every other pin as tested; `<PREFIX>_IMAGE_TAG` replaces the whole reference, digest included. The variable names are listed in `.env.example`. Nested defaults need Docker Compose v2.5 or newer (2022); v2.0 to v2.4 leave the inner `${...}` unexpanded and `docker compose up` fails with an invalid reference instead of deploying something unexpected.
 
-Note the deliberate trade-off: the **image** is pinned for reproducibility, while `VERSION=LATEST` floats the **game version** by default. Pin `MINECRAFT_SERVER_VERSION` too if plugin compatibility matters to you.
+Note the deliberate trade-off: the image is pinned for reproducibility, while `VERSION=LATEST` floats the game version by default. Pin `MINECRAFT_SERVER_VERSION` too if plugin compatibility matters to you.
 
 ## Production checklist
 
