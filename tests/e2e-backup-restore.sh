@@ -81,6 +81,30 @@ newest() {
   printf '%s' "$(host_path "$c")"
 }
 
+# How many archive cycles have BEGUN.
+started() { docker logs "$BACKUPS_CONTAINER" 2>&1 | grep -cF 'Backing up content in'; }
+
+# An archive whose cycle began after this call and has since finished.
+#
+# THE ORDERING TRAP, hit three times before it was written down. "The newest
+# completed archive" is not the same as "an archive of the state you just set
+# up": the cycle that completes next may have started before you did anything,
+# and it is entirely correct for it not to contain your change. Every assertion
+# about content has to name an archive whose cycle BEGAN after the state it is
+# asserting about.
+fresh_archive() {
+  local begun before deadline
+  begun="$(started)"; before="$(newest)"
+  deadline=$(( $(date +%s) + 2 * CYCLE_WAIT ))
+  while [ "$(date +%s)" -lt "$deadline" ]; do
+    if [ "$(started)" -gt "$begun" ] && [ "$(newest)" != "$before" ]; then
+      printf '%s' "$(newest)"; return 0
+    fi
+    sleep 5
+  done
+  return 1
+}
+
 # A COLD START CAN ARCHIVE BEFORE THERE IS A WORLD.
 #
 # The backup sidecar waits for the server's healthcheck, and the healthcheck
@@ -118,11 +142,11 @@ else
 fi
 echo
 
-# 1. an archive at all, taken after the world existed
+# 1. an archive whose cycle began AFTER the world was confirmed to exist.
+#    Not merely the newest one: the newest completed archive may have been
+#    taken before there was a world, which is correct of it and useless here.
 echo "=== test_backup_created ==="
-deadline=$(( $(date +%s) + CYCLE_WAIT ))
-while [ -z "$(newest)" ] && [ "$(date +%s)" -lt "$deadline" ]; do sleep 5; done
-ARCHIVE="$(newest)"
+ARCHIVE="$(fresh_archive)"
 if [ -n "$ARCHIVE" ]; then
   pass "an archive was produced ($ARCHIVE, $(wc -c < "$ARCHIVE" | tr -d ' ') bytes)"
 else
@@ -169,20 +193,9 @@ fi
 # 4. a change made now reaches the NEXT archive
 echo "=== test_new_content_reaches_the_next_archive ==="
 marker="e2e-marker-$$"
-# COUNT THE CYCLES THAT HAVE STARTED, not the archives that have finished.
-# An archive completing after the marker is written may have STARTED before it,
-# and will not contain it - which is correct behaviour and a failing test. The
-# one to look at is the first archive whose cycle BEGAN after the marker.
-started() { docker logs "$BACKUPS_CONTAINER" 2>&1 | grep -cF 'Backing up content in'; }
 if docker exec "$SERVER_CONTAINER" sh -c "printf 'x' > /data/$marker" 2>/dev/null; then
-  cycles_at_marker="$(started)"
-  before="$ARCHIVE"
-  deadline=$(( $(date +%s) + 2 * CYCLE_WAIT ))
-  # wait until a cycle has both begun after the marker and finished
-  while { [ "$(started)" -le "$cycles_at_marker" ] || [ "$(newest)" = "$before" ]; } \
-        && [ "$(date +%s)" -lt "$deadline" ]; do sleep 5; done
-  next="$(newest)"
-  if [ "$(started)" -le "$cycles_at_marker" ] || [ "$next" = "$before" ]; then
+  next="$(fresh_archive)"
+  if [ -z "$next" ]; then
     fail "no archive whose cycle began after the marker within $((2 * CYCLE_WAIT))s"
   elif tar -tzf "$next" 2>/dev/null | grep -q "$marker"; then
     pass "a file written after the last archive is in the next one"
@@ -196,7 +209,6 @@ fi
 
 # 5. the archive restores
 echo "=== test_restore_roundtrip ==="
-ARCHIVE="$(newest)"
 mkdir -p "$WORK/restore"
 if tar -xzf "$ARCHIVE" -C "$WORK/restore" 2>/dev/null; then
   if find "$WORK/restore" -name 'level.dat' -print -quit | grep -q .; then
