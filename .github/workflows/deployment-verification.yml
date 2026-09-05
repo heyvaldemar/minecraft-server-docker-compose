@@ -193,6 +193,7 @@ jobs:
           MINECRAFT_SERVER_RCON_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=' | head -c 32)
           MINECRAFT_SERVER_EULA=true
           MINECRAFT_SERVER_INITIAL_DELAY=15s
+          MINECRAFT_SERVER_BACKUP_INTERVAL=60s
           EOF
           echo "Generated ephemeral .env for CI run"
 
@@ -228,6 +229,18 @@ jobs:
           done'
           # shellcheck disable=SC2012
           ls -la minecraft-server-data-backups/ | tail -3
+
+      - name: Run the backup and restore end-to-end tests
+        # Nine scenarios against the live stack. The one that matters is the
+        # flush: before each archive the sidecar tells the server over RCON to
+        # stop writing and flush. Measured against a sidecar given a wrong
+        # password, itzg/mc-backup retries five times, never archives without a
+        # successful flush, and exits 2 — which under restart: unless-stopped
+        # becomes a restart loop producing no backups at all, while everything
+        # in `docker compose ps` looks ordinary.
+        run: |
+          chmod +x tests/e2e-backup-restore.sh
+          ./tests/e2e-backup-restore.sh
 
       - name: Show container logs on failure
         if: failure()

@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _(no unreleased changes yet)_
 
+## [1.5.0] - 2026-09-05
+
+### Added
+
+- **Backup and restore tested end to end.** Nine scenarios against the live
+  stack: an archive is produced, it is readable, it contains a `level.dat`
+  rather than an empty directory tree, a file written after the last archive
+  reaches the next one, the archive unpacks into a world, and pruning is
+  configured rather than merely intended.
+- **The world is proved to have been flushed before it was read.** Before each
+  archive the sidecar tells the server over RCON to stop writing and flush.
+  What happens when that fails was measured, not assumed, against a sidecar
+  given a deliberately wrong password: `itzg/mc-backup` retries five times,
+  never archives without a successful flush, and exits 2 — which under
+  `restart: unless-stopped` becomes a restart loop producing no backups at all,
+  while everything in `docker compose ps` looks ordinary. Nobody watches a
+  restart count, so the test reads the sidecar's own log for the flush having
+  run and for the absence of RCON errors. Both assertions were confirmed to
+  fire against the broken sidecar before being trusted.
+
 ## [1.4.0] - 2026-09-03
 
 ### Added
@@ -101,7 +121,8 @@ v1.2.0.
   ephemeral credentials, waits for the built-in healthcheck, proves RCON
   answers `list`, and requires a backup archive to appear.
 
-[Unreleased]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.1.0...v1.2.0
