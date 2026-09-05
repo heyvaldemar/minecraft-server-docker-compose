@@ -28,6 +28,13 @@ _(no unreleased changes yet)_
   restart count, so the test reads the sidecar's own log for the flush having
   run and for the absence of RCON errors. Both assertions were confirmed to
   fire against the broken sidecar before being trusted.
+- **The archive under test is chosen from the sidecar's log, not by
+  modification time.** The newest file on disk is very often the one being
+  written, and a half-written gzip is readable by `tar` for as far as it goes.
+  Picking by mtime reported a world with no `level.dat` and an archive that
+  would not unpack — both true of the file it was handed, and neither anything
+  to do with the backups. An archive named by a log line that has a `save-on`
+  after it is complete by definition.
 
 ## [1.4.0] - 2026-09-03
 

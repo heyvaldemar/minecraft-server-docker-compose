@@ -53,14 +53,32 @@ SERVER_CONTAINER="$(dc ps -aq minecraft-server | head -n 1)"
 [ -n "$BACKUPS_CONTAINER" ] || { echo "error: backup container not found — is the stack up?" >&2; exit 1; }
 [ -n "$SERVER_CONTAINER" ] || { echo "error: server container not found — is the stack up?" >&2; exit 1; }
 
-# find, and no pipe into an early-exiting consumer: `ls -t | head -1` kills
-# the producer with SIGPIPE under pipefail and reads as "no backups yet".
+# LOG-DRIVEN, not newest-by-mtime.
+#
+# The newest file on disk is very often the one currently being written, and a
+# half-written gzip is readable by `tar -tzf` for as far as it goes. The first
+# version of this picked by mtime and reported a world with no level.dat in it
+# and an archive that would not unpack — both true of the file it was handed,
+# and both nothing to do with the backups.
+#
+# The sidecar logs `Backing up content in /data to <path>` when it STARTS and
+# `save-on` when it has finished. An archive named by a line that has a save-on
+# after it is complete by definition.
+completed_archive() {
+  docker logs "$BACKUPS_CONTAINER" 2>&1 | awk '
+    /Backing up content in .* to / { sub(/.* to /, ""); f=$1; next }
+    /save-on/ && f != "" { done_f = f; f = "" }
+    END { if (done_f != "") print done_f }'
+}
+
+# The path inside the container maps to $BACKUPS_DIR on the host.
+host_path() { printf '%s/%s' "$BACKUPS_DIR" "${1##*/}"; }
+
 newest() {
-  local n="" f
-  while IFS= read -r -d '' f; do
-    if [ -z "$n" ] || [ "$f" -nt "$n" ]; then n="$f"; fi
-  done < <(find "$BACKUPS_DIR" -maxdepth 1 -type f -name '*.tar.gz' -print0 2>/dev/null)
-  printf '%s' "$n"
+  local c
+  c="$(completed_archive)"
+  [ -n "$c" ] || return 0
+  printf '%s' "$(host_path "$c")"
 }
 
 echo "=== minecraft: does a world come back out? ==="
