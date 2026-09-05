@@ -160,15 +160,21 @@ if tar -tzf "$ARCHIVE" >/dev/null 2>&1; then
 else
   fail "tar could not read the archive"
 fi
-# grep -c rather than grep -q, on principle: an early-exiting consumer under
-# `set -o pipefail` can close the pipe, kill the producer with SIGPIPE and turn
-# a 141 into "not found". Worth avoiding everywhere.
+# grep -c rather than grep -q. An early-exiting consumer under `set -o pipefail`
+# can close the pipe, kill the producer with SIGPIPE and turn a 141 into "not
+# found", which is worth avoiding whether or not it is biting today.
 #
-# It is NOT the explanation for the failures here, though it was the second
-# guess. Measured: forty runs with the match placed first in a twenty-thousand
-# entry archive, zero non-zero exits. The first guess, truncation, is wrong
-# too - a truncated archive fails `tar -tzf`, and this one passes it. The
-# diagnostics below exist because the third guess should be made from data.
+# WHETHER IT WAS BITING HERE IS NOT SETTLED, and the honest version is worth
+# more than a tidy one. Three runs reported no level.dat in an archive that the
+# restore step then unpacked a level.dat out of. Two changes landed close
+# together: every content assertion moved to an archive whose cycle began after
+# the state it asserts about, and this grep. The run carrying only the first
+# still failed; the run carrying both passed. But a synthetic reproduction -
+# forty runs, match placed first in a twenty-thousand entry archive - never
+# triggered the SIGPIPE case at all, so neither change is proven to be the fix.
+#
+# Truncation is ruled out: a truncated archive fails `tar -tzf`, and these pass
+# it. The diagnostics below stay for the next time it happens.
 if [ "$(tar -tzf "$ARCHIVE" 2>/dev/null | grep -c 'level\.dat$')" -gt 0 ]; then
   pass "it contains a level.dat, so it is a world and not an empty directory tree"
 else

@@ -29,7 +29,12 @@ _(no unreleased changes yet)_
   run and for the absence of RCON errors. Both assertions were confirmed to
   fire against the broken sidecar before being trusted.
 - **Every content assertion names an archive whose cycle BEGAN after the state
-  it is asserting about.** "The newest completed archive" is not the same
+  it is asserting about**, and no assertion pipes into an early-exiting `grep`.
+  Which of the two settled the flake is not established: the run carrying only
+  the first still failed and the run carrying both passed, but a synthetic
+  reproduction of the SIGPIPE case never triggered it. The test prints the
+  archive's contents on failure now, so the next occurrence is diagnosed from
+  data rather than from a third guess. "The newest completed archive" is not the same
   thing: the cycle that finishes next may have started before the change, and
   it is entirely correct for it not to contain it. That ordering trap produced
   three separate CI failures before it was written down as one helper used
