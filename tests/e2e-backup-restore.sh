@@ -55,11 +55,10 @@ SERVER_CONTAINER="$(dc ps -aq minecraft-server | head -n 1)"
 
 # LOG-DRIVEN, not newest-by-mtime.
 #
-# The newest file on disk is very often the one currently being written, and a
-# half-written gzip is readable by `tar -tzf` for as far as it goes. The first
-# version of this picked by mtime and reported a world with no level.dat in it
-# and an archive that would not unpack — both true of the file it was handed,
-# and both nothing to do with the backups.
+# The newest file on disk is very often the one currently being written, and
+# picking it by mtime once reported an archive that would not unpack. (A
+# truncated gzip fails `tar -tzf` outright, measured - so that failure was
+# real, and this is the fix for it.)
 #
 # The sidecar logs `Backing up content in /data to <path>` when it STARTS and
 # `save-on` when it has finished. An archive named by a line that has a save-on
@@ -161,11 +160,15 @@ if tar -tzf "$ARCHIVE" >/dev/null 2>&1; then
 else
   fail "tar could not read the archive"
 fi
-# grep -c, never grep -q. Under `set -o pipefail` an early-exiting consumer
-# closes the pipe, tar dies of SIGPIPE, the pipeline returns 141 and the whole
-# thing reads as "not found". That is what produced three CI runs reporting an
-# archive with no level.dat in it while the restore test unpacked a level.dat
-# out of the very same file. grep -c always drains its input.
+# grep -c rather than grep -q, on principle: an early-exiting consumer under
+# `set -o pipefail` can close the pipe, kill the producer with SIGPIPE and turn
+# a 141 into "not found". Worth avoiding everywhere.
+#
+# It is NOT the explanation for the failures here, though it was the second
+# guess. Measured: forty runs with the match placed first in a twenty-thousand
+# entry archive, zero non-zero exits. The first guess, truncation, is wrong
+# too - a truncated archive fails `tar -tzf`, and this one passes it. The
+# diagnostics below exist because the third guess should be made from data.
 if [ "$(tar -tzf "$ARCHIVE" 2>/dev/null | grep -c 'level\.dat$')" -gt 0 ]; then
   pass "it contains a level.dat, so it is a world and not an empty directory tree"
 else
