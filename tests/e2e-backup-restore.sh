@@ -161,30 +161,49 @@ if tar -tzf "$ARCHIVE" >/dev/null 2>&1; then
 else
   fail "tar could not read the archive"
 fi
-if tar -tzf "$ARCHIVE" 2>/dev/null | grep -q 'level\.dat$'; then
+# grep -c, never grep -q. Under `set -o pipefail` an early-exiting consumer
+# closes the pipe, tar dies of SIGPIPE, the pipeline returns 141 and the whole
+# thing reads as "not found". That is what produced three CI runs reporting an
+# archive with no level.dat in it while the restore test unpacked a level.dat
+# out of the very same file. grep -c always drains its input.
+if [ "$(tar -tzf "$ARCHIVE" 2>/dev/null | grep -c 'level\.dat$')" -gt 0 ]; then
   pass "it contains a level.dat, so it is a world and not an empty directory tree"
 else
+  # Say what IS in it. Two guesses at why this fails on a runner and not here
+  # were both wrong - a truncated archive (it passes tar -tzf, so it is not
+  # truncated) and SIGPIPE from grep -q (measured: does not reproduce). The
+  # next run should report the facts rather than invite a third guess.
   fail "no level.dat in the archive"
-  tar -tzf "$ARCHIVE" 2>/dev/null | head -5 | sed 's/^/        /'
+  {
+    echo "        entries: $(tar -tzf "$ARCHIVE" 2>/dev/null | grep -c .)"
+    echo "        gzip -t: $(gzip -t "$ARCHIVE" 2>&1 && echo ok || echo FAILED)"
+    echo "        anything with 'level' in the name:"
+    tar -tzf "$ARCHIVE" 2>/dev/null | grep -i level | head -5 | sed 's/^/          /'
+    echo "        top-level entries:"
+    tar -tzf "$ARCHIVE" 2>/dev/null | awk -F/ '{print $2}' | sort -u | head -12 | sed 's/^/          /'
+    echo "        and what the server has on disk right now:"
+    docker exec "$SERVER_CONTAINER" sh -c 'ls /data' 2>/dev/null | head -12 | sed 's/^/          /'
+  } || true
 fi
 
 # 3. THE ONE THAT MATTERS: the world was flushed before it was read.
 echo "=== test_world_was_flushed_first ==="
 logs="$(docker logs "$BACKUPS_CONTAINER" 2>&1)"
-if printf '%s' "$logs" | grep -qF 'save-off' && printf '%s' "$logs" | grep -qF 'save-all flush'; then
+if [ "$(printf '%s' "$logs" | grep -cF 'save-off')" -gt 0 ] \
+   && [ "$(printf '%s' "$logs" | grep -cF 'save-all flush')" -gt 0 ]; then
   pass "the sidecar told the server to stop writing and flush before archiving"
 else
   fail "no save-off / save-all flush in the sidecar log — the archive was taken of a live world"
   printf '%s' "$logs" | tail -8 | sed 's/^/        /'
 fi
-if printf '%s' "$logs" | grep -qF 'save-on'; then
+if [ "$(printf '%s' "$logs" | grep -cF 'save-on')" -gt 0 ]; then
   pass "and told it to resume afterwards"
 else
   fail "no save-on — the server may have been left with saving disabled"
 fi
 # A failed rcon command is logged and the backup continues regardless, which is
 # exactly how this goes wrong quietly.
-if printf '%s' "$logs" | grep -qiE 'rcon.*(failed|error|refused|unable)'; then
+if [ "$(printf '%s' "$logs" | grep -ciE 'rcon.*(failed|error|refused|unable)')" -gt 0 ]; then
   fail "the sidecar reported an RCON problem: $(printf '%s' "$logs" | grep -iE 'rcon.*(failed|error|refused|unable)' | tail -1)"
 else
   pass "no RCON failures reported"
@@ -197,7 +216,7 @@ if docker exec "$SERVER_CONTAINER" sh -c "printf 'x' > /data/$marker" 2>/dev/nul
   next="$(fresh_archive)"
   if [ -z "$next" ]; then
     fail "no archive whose cycle began after the marker within $((2 * CYCLE_WAIT))s"
-  elif tar -tzf "$next" 2>/dev/null | grep -q "$marker"; then
+  elif [ "$(tar -tzf "$next" 2>/dev/null | grep -c "$marker")" -gt 0 ]; then
     pass "a file written after the last archive is in the next one"
   else
     fail "the next archive does not contain a file that existed before it was taken"
@@ -211,7 +230,7 @@ fi
 echo "=== test_restore_roundtrip ==="
 mkdir -p "$WORK/restore"
 if tar -xzf "$ARCHIVE" -C "$WORK/restore" 2>/dev/null; then
-  if find "$WORK/restore" -name 'level.dat' -print -quit | grep -q .; then
+  if [ -n "$(find "$WORK/restore" -name 'level.dat' -print -quit)" ]; then
     n=$(find "$WORK/restore" -type f | wc -l | tr -d ' ')
     pass "the archive unpacks into a world ($n files, level.dat present)"
   else
@@ -223,7 +242,7 @@ fi
 
 # 6. pruning is actually configured, not merely intended
 echo "=== test_prune_configured ==="
-if printf '%s' "$logs" | grep -qF 'Pruning backup files older than'; then
+if [ "$(printf '%s' "$logs" | grep -cF 'Pruning backup files older than')" -gt 0 ]; then
   pass "the sidecar prunes old archives: $(printf '%s' "$logs" | grep -F 'Pruning backup files older than' | tail -1 | sed 's/.*INFO //')"
 else
   fail "no pruning line in the log — archives will accumulate until the disk fills"
