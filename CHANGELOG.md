@@ -28,6 +28,13 @@ _(no unreleased changes yet)_
   restart count, so the test reads the sidecar's own log for the flush having
   run and for the absence of RCON errors. Both assertions were confirmed to
   fire against the broken sidecar before being trusted.
+- **A cold start can archive before there is a world, and the test says so
+  rather than working around it.** The sidecar waits for the server's
+  healthcheck, and that passes when the server answers — which on a slow
+  machine is before the world directory has been written. The first archive
+  then legitimately contains the server's files and no world. Never an issue at
+  the shipped 23 hour interval; real for anyone who shortens it or restarts
+  often.
 - **The archive under test is chosen from the sidecar's log, not by
   modification time.** The newest file on disk is very often the one being
   written, and a half-written gzip is readable by `tar` for as far as it goes.

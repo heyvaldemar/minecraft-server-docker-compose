@@ -81,11 +81,44 @@ newest() {
   printf '%s' "$(host_path "$c")"
 }
 
+# A COLD START CAN ARCHIVE BEFORE THERE IS A WORLD.
+#
+# The backup sidecar waits for the server's healthcheck, and the healthcheck
+# passes when the server answers - which on a slow machine is before the world
+# directory has been written out. The first archive then legitimately contains
+# the server's files and no world, and judging the backups by it says nothing
+# about the backups. Observed on a CI runner, twice.
+#
+# In production, with the shipped 23h interval, this never arises. It is real
+# for anyone who shortens the interval or restarts often, which is worth
+# knowing - and the test states the precondition rather than working around it.
+wait_for_world() {
+  local deadline=$(( $(date +%s) + CYCLE_WAIT ))
+  while [ "$(date +%s)" -lt "$deadline" ]; do
+    # By name, not by path: the world directory is whatever LEVEL is set to,
+    # and the shipped default is not `world`. No pipe into grep -q either -
+    # that kills find with SIGPIPE under pipefail and reads as "not there yet".
+    WORLD_PATH="$(docker exec "$SERVER_CONTAINER" sh -c 'find /data -maxdepth 2 -name level.dat -print -quit' 2>/dev/null)"
+    if [ -n "$WORLD_PATH" ]; then return 0; fi
+    sleep 5
+  done
+  return 1
+}
+
 echo "=== minecraft: does a world come back out? ==="
 echo "  project=$COMPOSE_PROJECT_NAME backups=$BACKUPS_DIR"
 echo
 
-# 1. an archive at all
+echo "=== waiting for the world to exist before judging any archive ==="
+if wait_for_world; then
+  echo "  the world exists: $WORLD_PATH"
+else
+  echo "  FAIL: no world after ${CYCLE_WAIT}s - nothing below would mean anything"
+  exit 1
+fi
+echo
+
+# 1. an archive at all, taken after the world existed
 echo "=== test_backup_created ==="
 deadline=$(( $(date +%s) + CYCLE_WAIT ))
 while [ -z "$(newest)" ] && [ "$(date +%s)" -lt "$deadline" ]; do sleep 5; done
@@ -136,13 +169,21 @@ fi
 # 4. a change made now reaches the NEXT archive
 echo "=== test_new_content_reaches_the_next_archive ==="
 marker="e2e-marker-$$"
+# COUNT THE CYCLES THAT HAVE STARTED, not the archives that have finished.
+# An archive completing after the marker is written may have STARTED before it,
+# and will not contain it - which is correct behaviour and a failing test. The
+# one to look at is the first archive whose cycle BEGAN after the marker.
+started() { docker logs "$BACKUPS_CONTAINER" 2>&1 | grep -cF 'Backing up content in'; }
 if docker exec "$SERVER_CONTAINER" sh -c "printf 'x' > /data/$marker" 2>/dev/null; then
+  cycles_at_marker="$(started)"
   before="$ARCHIVE"
-  deadline=$(( $(date +%s) + CYCLE_WAIT ))
-  while [ "$(newest)" = "$before" ] && [ "$(date +%s)" -lt "$deadline" ]; do sleep 5; done
+  deadline=$(( $(date +%s) + 2 * CYCLE_WAIT ))
+  # wait until a cycle has both begun after the marker and finished
+  while { [ "$(started)" -le "$cycles_at_marker" ] || [ "$(newest)" = "$before" ]; } \
+        && [ "$(date +%s)" -lt "$deadline" ]; do sleep 5; done
   next="$(newest)"
-  if [ "$next" = "$before" ]; then
-    fail "no new archive within ${CYCLE_WAIT}s, so this could not be checked"
+  if [ "$(started)" -le "$cycles_at_marker" ] || [ "$next" = "$before" ]; then
+    fail "no archive whose cycle began after the marker within $((2 * CYCLE_WAIT))s"
   elif tar -tzf "$next" 2>/dev/null | grep -q "$marker"; then
     pass "a file written after the last archive is in the next one"
   else
