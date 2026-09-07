@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _(no unreleased changes yet)_
 
+## [1.5.1] - 2026-09-06
+
+### Changed
+
+- **The server image moves to `itzg/minecraft-server:2026.9.0`.** The release
+  is bug fixes and hardening: a modpack archive that cannot be extracted, a
+  `CUSTOM_SERVER` download that returns an HTTP error, and a failed FTB
+  installer now stop startup instead of leaving a half-installed server
+  running. Percentage memory sizes are computed with integer arithmetic. The
+  compose file boots and the backup cycle is exercised against the new image
+  before this lands.
+
+### Fixed
+
+- **`.env.example` named image versions the compose file no longer pins.** It
+  still showed `2026.8.2` for the backup image while the compose default was
+  `2026.9.0`, so anyone copying the commented line as a starting point pinned
+  something older than the tested combination.
+
 ## [1.5.0] - 2026-09-05
 
 ### Added
@@ -146,7 +165,8 @@ v1.2.0.
   ephemeral credentials, waits for the built-in healthcheck, proves RCON
   answers `list`, and requires a backup archive to appear.
 
-[Unreleased]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.5.1...HEAD
+[1.5.1]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.2.0...v1.3.0
