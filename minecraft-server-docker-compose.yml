@@ -7,7 +7,7 @@
 # the pins from these lines — this block is the single source of truth.
 x-images:
   minecraft: &minecraft-image ${MINECRAFT_SERVER_IMAGE_TAG:-itzg/minecraft-server:${MINECRAFT_SERVER_IMAGE_VERSION:-2026.9.0@sha256:4e29d14082d94748f945edad3ee5307b97adc730fec49860199f5e52218a9ae3}}
-  mc-backup: &mc-backup-image ${MINECRAFT_SERVER_BACKUP_IMAGE_TAG:-itzg/mc-backup:${MINECRAFT_SERVER_BACKUP_IMAGE_VERSION:-2026.9.0@sha256:89ee1d9d1ee47891123147ac191d0522acc4cde727422681f6b8abf044a3badd}}
+  mc-backup: &mc-backup-image ${MINECRAFT_SERVER_BACKUP_IMAGE_TAG:-itzg/mc-backup:${MINECRAFT_SERVER_BACKUP_IMAGE_VERSION:-2026.9.1@sha256:0b6a10703723e8b2c03cf19e237aaebef91deeeafceb376968a659b32c11b66f}}
 
 networks:
   minecraft-server-network:
