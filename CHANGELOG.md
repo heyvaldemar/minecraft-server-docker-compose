@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+_(no unreleased changes yet)_
+
+## [1.5.3] - 2026-09-09
+
 ### Changed
 
 - **`itzg/mc-backup:2026.9.0` moved to `itzg/mc-backup:2026.9.1`.** The freshness check reported the lag; the deploy job booted the stack on the new image before this landed.
@@ -165,7 +169,8 @@ v1.2.0.
   ephemeral credentials, waits for the built-in healthcheck, proves RCON
   answers `list`, and requires a backup archive to appear.
 
-[Unreleased]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.5.2...HEAD
+[Unreleased]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.5.3...HEAD
+[1.5.3]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.5.2...v1.5.3
 [1.5.2]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.4.0...v1.5.0
