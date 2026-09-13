@@ -7,7 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_(no unreleased changes yet)_
+### Changed
+
+- **`itzg/minecraft-server:2026.9.0` moved to `itzg/minecraft-server:2026.9.1`.** The freshness check reported the lag; the deploy job booted the stack on the new image before this landed.
 
 ## [1.5.3] - 2026-09-09
 
