@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _(no unreleased changes yet)_
 
+## [1.5.5] - 2026-09-14
+
+### Fixed
+
+- **The restore test proved the archive was a world, not that a restore puts
+  it where the server looks.** It unpacked into a throwaway directory and
+  accepted a `level.dat` found anywhere underneath. The README's procedure is
+  to extract an archive over `./minecraft-server-data`, and an archive whose
+  world sits one directory deeper than that leaves the server with an empty
+  data directory — which it does not complain about. It generates a fresh
+  world over the one being restored. On a sibling stack that exact difference
+  kept a quarterly drill green for months.
+- The assertion now takes the running server's own `level.dat` path as the
+  reference and requires the archive to unpack to the same relative path, so a
+  layout change makes this fail instead of blessing the old shape. The failure
+  message names both paths and says what a restore would actually produce.
+  Proven in three directions against synthetic archives: the right layout, one
+  directory too deep, and no world at all.
+
 ## [1.5.4] - 2026-09-13
 
 ### Changed
@@ -175,7 +194,8 @@ v1.2.0.
   ephemeral credentials, waits for the built-in healthcheck, proves RCON
   answers `list`, and requires a backup archive to appear.
 
-[Unreleased]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.5.4...HEAD
+[Unreleased]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.5.5...HEAD
+[1.5.5]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.5.4...v1.5.5
 [1.5.4]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.5.3...v1.5.4
 [1.5.3]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.5.2...v1.5.3
 [1.5.2]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.5.1...v1.5.2

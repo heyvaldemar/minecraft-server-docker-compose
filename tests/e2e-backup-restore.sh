@@ -235,13 +235,32 @@ else
   fail "could not write a marker into the world directory"
 fi
 
-# 5. the archive restores
+# 5. the archive restores — the way the README says to restore it
+#
+# THE PATH IS THE TEST. Unpacking somewhere and finding a level.dat anywhere
+# underneath proves the archive is a world and nothing about whether a restore
+# puts that world where the server looks for it. Those are different claims,
+# and on a sibling stack the difference was a quarterly drill that stayed green
+# for months while the documented restore command produced
+# `data/data/world/level.dat` — one directory too deep. The server does not
+# complain about that. It finds an empty data directory and generates a fresh
+# world over the top of the one being restored.
+#
+# So the reference is the LIVE stack: whatever relative path the running server
+# keeps its level.dat at is the path the archive has to unpack it to. When the
+# layout changes, this starts failing instead of going on blessing the old one.
 echo "=== test_restore_roundtrip ==="
 mkdir -p "$WORK/restore"
+# WORLD_PATH is absolute inside the container (/data/<level>/level.dat); the
+# README's procedure extracts over ./minecraft-server-data, which IS /data.
+REL="${WORLD_PATH#/data/}"
 if tar -xzf "$ARCHIVE" -C "$WORK/restore" 2>/dev/null; then
-  if [ -n "$(find "$WORK/restore" -name 'level.dat' -print -quit)" ]; then
-    n=$(find "$WORK/restore" -type f | wc -l | tr -d ' ')
-    pass "the archive unpacks into a world ($n files, level.dat present)"
+  n=$(find "$WORK/restore" -type f | wc -l | tr -d ' ')
+  if [ -f "$WORK/restore/$REL" ]; then
+    pass "the archive unpacks to $REL, the same path the running server keeps it at ($n files)"
+  elif [ -n "$(find "$WORK/restore" -name 'level.dat' -print -quit)" ]; then
+    found="$(find "$WORK/restore" -name 'level.dat' -print -quit)"
+    fail "the archive contains a world but not where a restore would put it: expected $REL, found ${found#"$WORK/restore/"} — extracting this over ./minecraft-server-data leaves the server with an empty data directory, and it will generate a fresh world over the one being restored"
   else
     fail "the archive unpacked but has no level.dat"
   fi

@@ -139,6 +139,8 @@ Note the deliberate trade-off: the image is pinned for reproducibility, while `V
 
 The `mc-backup` sidecar coordinates with the server over RCON: `save-off` → `save-all` → tar the world → `save-on`, on an interval (`MINECRAFT_SERVER_BACKUP_INTERVAL`, default 23h), pruning archives older than `MINECRAFT_SERVER_PRUNE_BACKUPS_DAYS` (default 7). Archives are plain `.tar.gz` files in `./minecraft-server-data-backups`: restore by stopping the stack, extracting an archive over `./minecraft-server-data`, and starting again.
 
+CI restores one on every run and requires the world to land at the same relative path the running server keeps it at — not merely somewhere inside the archive. An archive whose world sits a directory deeper than that unpacks cleanly, leaves the server with an empty data directory, and the server does not complain: it generates a fresh world over the one being restored.
+
 ## Unattended updates
 
 Releases are the update channel: a tag is cut only after CI has built the pinned images, booted the full stack, and passed the smoke tests. `update.sh` moves a deployment to the newest tag and nothing else:
