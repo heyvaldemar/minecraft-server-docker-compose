@@ -307,3 +307,26 @@ jobs:
       - name: Shutdown Docker Compose services
         if: always()
         run: docker compose -f "$DOCKER_COMPOSE_FILE" -p "$COMPOSE_PROJECT_NAME" down
+
+  plugins:
+    name: Do the pinned plugins exist for the version this would run
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Scheduled and manual only. VERSION defaults to LATEST, so the answer
+    # changes when Mojang publishes rather than when anybody commits here —
+    # which is exactly why a pull request is the wrong place to ask it.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Ask Modrinth before a world is converted, not after
+        # A Minecraft release always outpaces its plugin ecosystem. The server
+        # takes the new version the moment it appears, fails to resolve plugins
+        # that have no build for it yet, and exits during resolution — in a
+        # loop, with its version already bumped and its backup already taken.
+        run: |
+          chmod +x tools/plugins-for-version.sh
+          ./tools/plugins-for-version.sh

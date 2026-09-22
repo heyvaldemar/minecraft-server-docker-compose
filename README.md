@@ -113,6 +113,17 @@ Two mechanisms, combinable:
 
 Plugins are re-resolved on every container start, so version bumps arrive with a `--force-recreate`.
 
+### Before you move to a new Minecraft version
+
+A Minecraft release always outpaces its plugin ecosystem. `VERSION` defaults to `LATEST`, so the server takes the new one the moment it appears — and if the plugins pinned in `MODRINTH_PROJECTS` have no build for it yet, it exits during plugin resolution, in a loop, with its version already bumped and its backup already taken. A world converted to a version its plugins cannot load is converted either way.
+
+```bash
+tools/plugins-for-version.sh            # what LATEST resolves to today
+tools/plugins-for-version.sh 1.21.4     # or a version you are considering
+```
+
+It reads the project list out of the compose file, so it cannot drift from what the server would actually download, and it exits `2` rather than `1` when Modrinth does not answer: a question that could not be asked is not a no. The daily verification runs it, so the answer arrives before anybody restarts anything.
+
 ## Supply chain trust
 
 This repository is a deployment template orchestrating two upstream images:

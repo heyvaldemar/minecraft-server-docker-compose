@@ -7,7 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_(no unreleased changes yet)_
+### Added
+
+- **`tools/plugins-for-version.sh`: ask whether the plugins exist before a world is converted.** A Minecraft release always outpaces its plugin ecosystem, and `VERSION` defaults to `LATEST` — so the server takes the new one the moment it appears, fails to resolve plugins that have no build for it yet, and exits during resolution in a loop, with its version already bumped and its backup already taken. The check reads the project list out of the compose file so it cannot drift from what the server would download, and the daily verification runs it. A question Modrinth could not answer exits `2` rather than condemning the plugins: that is not a no. Shown both answers in `tests/plugins-for-version.sh`.
 
 ## [1.5.5] - 2026-09-14
 
