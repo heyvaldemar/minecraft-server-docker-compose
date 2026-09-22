@@ -7,7 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_(no unreleased changes yet)_
+### Changed
+
+- **`itzg/mc-backup:2026.9.1` moved to `itzg/mc-backup:2026.9.2`.** The freshness check reported the lag; the deploy job booted the stack on the new image before this landed.
 
 ## [1.6.0] - 2026-09-22
 
