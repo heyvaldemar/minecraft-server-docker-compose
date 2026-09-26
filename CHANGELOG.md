@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`itzg/minecraft-server:2026.9.1` moved to `itzg/minecraft-server:2026.9.2`.** The freshness check reported the lag; the deploy job booted the stack on the new image before this landed.
 - **The freshness check has its own workflow, Pin Freshness.** It ran inside Deployment Verification, whose badge is the one at the top of this README. Across the fleet, nine red runs in ten were a pin one version behind - which the fleet's triage moves within the day - and a reader cannot tell that from a stack that does not boot. The badge now says whether the stack boots. The job itself is unchanged.
 - **`itzg/mc-backup:2026.9.1` moved to `itzg/mc-backup:2026.9.2`.** The freshness check reported the lag; the deploy job booted the stack on the new image before this landed.
 
