@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   sidecar running every job and writing nothing: busybox crond sets a job's groups before running it, so the backups service now
   keeps `SETGID` alongside `CHOWN`, `DAC_OVERRIDE` and `FOWNER`.
 
+### Fixed
+
+- **`update.sh` stops on a `.env` it cannot read, before the checkout.** It used to fall through: every new required variable read as "not set", or, with none, the tree moved to the new tag and `docker compose up` failed on the permission. Now it names the file, its owner and mode, and changes nothing.
+
 ## [1.6.2] - 2026-10-01
 
 ### Changed
