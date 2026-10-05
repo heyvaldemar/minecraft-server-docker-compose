@@ -89,6 +89,10 @@ services:
       - CHOWN
       - DAC_OVERRIDE
       - FOWNER
+      # busybox crond sets a job's groups before running it. Without SETGID
+      # every CRON_SCHEDULE job dies on "can't set groups" and no archive is
+      # ever written, while the sidecar itself stays up and looks healthy.
+      - SETGID
     # Resource limits as .env-overridable defaults (e.g. MINECRAFT_SERVER_BACKUPS_MEMORY_LIMIT=2g);
     # the override survives every git pull.
     deploy:
@@ -109,6 +113,15 @@ services:
       BACKUP_INTERVAL: ${MINECRAFT_SERVER_BACKUP_INTERVAL:-23h}
       PRUNE_BACKUPS_DAYS: ${MINECRAFT_SERVER_PRUNE_BACKUPS_DAYS:-7}
       INITIAL_DELAY: ${MINECRAFT_SERVER_INITIAL_DELAY:-0}
+      # A BACKUP ON A CLOCK, NOT ON AN UPTIME. The interval counts from the
+      # sidecar's start, so the backup window lands wherever the last restart
+      # happened to put it: a host that boots at 21:24 backs up at 21:24, and an
+      # image update applied at 16:47 moves save-off to the afternoon. Set
+      # CRON_SCHEDULE in .env (for example 0 4 * * *) to pin it; mc-backup then
+      # ignores the interval and the initial delay. It is passed through only
+      # when set, because mc-backup switches to cron on the variable merely
+      # existing, so an empty value would mean an empty schedule.
+      CRON_SCHEDULE:
       TZ: ${MINECRAFT_SERVER_SERVER_TIMEZONE:-UTC}
     volumes:
     - ./minecraft-server-data:${DATA_PATH:-/data}:ro
