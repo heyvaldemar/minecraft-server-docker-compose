@@ -206,6 +206,29 @@ jobs:
           # shellcheck disable=SC2012
           ls -la minecraft-server-data-backups/ | tail -3
 
+      - name: A backup on a clock, from the same service definition
+        # CRON_SCHEDULE pins the backup window to the clock instead of the
+        # sidecar's uptime. This runs a second sidecar from the shipped service
+        # (its capabilities, no-new-privileges, network and RCON wiring) with
+        # only the schedule and the destination changed, and requires a real
+        # archive with the world in it. busybox crond logs "can't set groups"
+        # under cap_drop ALL and runs the job anyway; this is what proves it.
+        run: |
+          mkdir -p minecraft-server-data-backups/cron
+          docker compose -f "$DOCKER_COMPOSE_FILE" -p "$COMPOSE_PROJECT_NAME" run -d --no-deps --name mc-backup-cron \
+            -e CRON_SCHEDULE="* * * * *" -e DEST_DIR=/backups/cron backups
+          # shellcheck disable=SC2016
+          timeout 4m bash -c 'until ls minecraft-server-data-backups/cron/*.tar.gz >/dev/null 2>&1; do echo "waiting for the cron archive..."; sleep 10; done'
+          a="$(find minecraft-server-data-backups/cron -name '*.tar.gz' -type f | sort | tail -1)"
+          if tar -tzf "$a" | grep -qE '(^|/)level\.dat$'; then
+            echo "cron archive $a carries the world"
+          else
+            echo "::error::the cron archive $a has no level.dat"
+            docker logs mc-backup-cron | tail -20
+            exit 1
+          fi
+          docker rm -f mc-backup-cron >/dev/null
+
       - name: Run the backup and restore end-to-end tests
         # Nine scenarios against the live stack. The one that matters is the
         # flush: before each archive the sidecar tells the server over RCON to

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Backups can run on the clock.** `CRON_SCHEDULE` in `.env` (for example `0 4 * * *`, read in `MINECRAFT_SERVER_SERVER_TIMEZONE`)
+  pins the backup window; without it the interval counts from the sidecar's start, so the window lands wherever the last restart put
+  it. The variable is passed through only when set, because mc-backup switches to cron on it merely existing. CI runs a second
+  sidecar from the shipped service definition on `* * * * *` and requires an archive with the world in it.
+
 _(no unreleased changes yet)_
 
 ## [1.6.2] - 2026-10-01

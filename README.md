@@ -166,7 +166,7 @@ Add `--source-tag <tag>` for a release published after 24 September 2026, which 
 
 ## Backups
 
-The `mc-backup` sidecar coordinates with the server over RCON: `save-off` → `save-all` → tar the world → `save-on`, on an interval (`MINECRAFT_SERVER_BACKUP_INTERVAL`, default 23h), pruning archives older than `MINECRAFT_SERVER_PRUNE_BACKUPS_DAYS` (default 7). Archives are plain `.tar.gz` files in `./minecraft-server-data-backups`: restore by stopping the stack, extracting an archive over `./minecraft-server-data`, and starting again.
+The `mc-backup` sidecar coordinates with the server over RCON: `save-off` → `save-all` → tar the world → `save-on`, on an interval (`MINECRAFT_SERVER_BACKUP_INTERVAL`, default 23h), pruning archives older than `MINECRAFT_SERVER_PRUNE_BACKUPS_DAYS` (default 7). The interval counts from the sidecar's start, so the backup window drifts to wherever the last restart put it. To pin it to the clock, set `CRON_SCHEDULE` in `.env`, for example `0 4 * * *`, read in `MINECRAFT_SERVER_SERVER_TIMEZONE`; the interval and initial delay are then ignored. CI runs a second sidecar from the same service definition on `* * * * *` and requires an archive with the world in it. Archives are plain `.tar.gz` files in `./minecraft-server-data-backups`: restore by stopping the stack, extracting an archive over `./minecraft-server-data`, and starting again.
 
 CI restores one on every run and requires the world to land at the same relative path the running server keeps it at — not merely somewhere inside the archive. An archive whose world sits a directory deeper than that unpacks cleanly, leaves the server with an empty data directory, and the server does not complain: it generates a fresh world over the one being restored.
 
