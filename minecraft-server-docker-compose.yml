@@ -89,6 +89,10 @@ services:
       - CHOWN
       - DAC_OVERRIDE
       - FOWNER
+      # busybox crond sets a job's groups before running it. Without SETGID
+      # every CRON_SCHEDULE job dies on "can't set groups" and no archive is
+      # ever written, while the sidecar itself stays up and looks healthy.
+      - SETGID
     # Resource limits as .env-overridable defaults (e.g. MINECRAFT_SERVER_BACKUPS_MEMORY_LIMIT=2g);
     # the override survives every git pull.
     deploy:

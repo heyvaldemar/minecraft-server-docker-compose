@@ -211,8 +211,9 @@ jobs:
         # sidecar's uptime. This runs a second sidecar from the shipped service
         # (its capabilities, no-new-privileges, network and RCON wiring) with
         # only the schedule and the destination changed, and requires a real
-        # archive with the world in it. busybox crond logs "can't set groups"
-        # under cap_drop ALL and runs the job anyway; this is what proves it.
+        # archive with the world in it. Its first run caught the shipped
+        # definition producing nothing: under cap_drop ALL, busybox crond's
+        # job died on "can't set groups" every minute until SETGID went back.
         run: |
           # The bind mount belongs to the sidecar's user, not the runner's.
           sudo mkdir -p minecraft-server-data-backups/cron
