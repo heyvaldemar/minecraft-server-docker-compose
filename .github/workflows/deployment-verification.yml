@@ -214,17 +214,21 @@ jobs:
         # archive with the world in it. busybox crond logs "can't set groups"
         # under cap_drop ALL and runs the job anyway; this is what proves it.
         run: |
-          mkdir -p minecraft-server-data-backups/cron
+          # The bind mount belongs to the sidecar's user, not the runner's.
+          sudo mkdir -p minecraft-server-data-backups/cron
+          sudo chown --reference=minecraft-server-data-backups minecraft-server-data-backups/cron
           docker compose -f "$DOCKER_COMPOSE_FILE" -p "$COMPOSE_PROJECT_NAME" run -d --no-deps --name mc-backup-cron \
             -e CRON_SCHEDULE="* * * * *" -e DEST_DIR=/backups/cron backups
+          # Retry until a complete archive with the world in it appears, so an
+          # archive still being written is not read as a broken one.
           # shellcheck disable=SC2016
-          timeout 4m bash -c 'until ls minecraft-server-data-backups/cron/*.tar.gz >/dev/null 2>&1; do echo "waiting for the cron archive..."; sleep 10; done'
-          a="$(find minecraft-server-data-backups/cron -name '*.tar.gz' -type f | sort | tail -1)"
-          if tar -tzf "$a" | grep -qE '(^|/)level\.dat$'; then
-            echo "cron archive $a carries the world"
+          if timeout 4m bash -c 'until a="$(sudo find minecraft-server-data-backups/cron -name "*.tar.gz" -type f | sort | tail -1)" && [ -n "$a" ] && sudo tar -tzf "$a" 2>/dev/null | grep -qE "(^|/)level\.dat$"; do echo "waiting for the cron archive..."; sleep 10; done'; then
+            echo "cron archive carries the world:"
+            sudo ls -la minecraft-server-data-backups/cron
           else
-            echo "::error::the cron archive $a has no level.dat"
-            docker logs mc-backup-cron | tail -20
+            echo "::error::no archive with level.dat under backups/cron within 4 minutes"
+            sudo ls -la minecraft-server-data-backups/cron || true
+            docker logs mc-backup-cron 2>&1 | tail -20
             exit 1
           fi
           docker rm -f mc-backup-cron >/dev/null
