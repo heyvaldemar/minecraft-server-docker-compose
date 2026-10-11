@@ -6,7 +6,7 @@
 # CI (Trivy scans, check-pin-freshness, the ephemeral test .env) reads
 # the pins from these lines — this block is the single source of truth.
 x-images:
-  minecraft: &minecraft-image ${MINECRAFT_SERVER_IMAGE_TAG:-itzg/minecraft-server:${MINECRAFT_SERVER_IMAGE_VERSION:-2026.9.2@sha256:de5d1b1a83eba576f6c8a688fac2a3523ce457724cdebc8ea48d7818b74cdf6e}}
+  minecraft: &minecraft-image ${MINECRAFT_SERVER_IMAGE_TAG:-itzg/minecraft-server:${MINECRAFT_SERVER_IMAGE_VERSION:-2026.10.0@sha256:5a2ab74ae179c11e2dbbce67f307cdcf2c1257b3abb0f654d3a310b3d8ea57da}}
   mc-backup: &mc-backup-image ${MINECRAFT_SERVER_BACKUP_IMAGE_TAG:-itzg/mc-backup:${MINECRAFT_SERVER_BACKUP_IMAGE_VERSION:-2026.9.3@sha256:3ff6a1e8fa15ca4e4440b118676cf58c611a4079d4da8fe792b04a9a13619f16}}
 
 networks:
