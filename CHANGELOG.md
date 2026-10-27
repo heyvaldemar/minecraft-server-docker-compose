@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+_(no unreleased changes yet)_
+
+## [1.7.6] - 2026-10-27
+
 ### Changed
 
 - **The README says to size the heap to how much the world is played.** The image passes `MINECRAFT_SERVER_MEMORY` as both `-Xms` and `-Xmx`, so the whole heap is committed at start and never given back, and with Aikar's flags every page of it is touched before the first tick. On the server this template comes from, four worlds nobody had entered in three months went from 2G to 1G and their containers from 2.7 to 1.5 GiB, still at 20.0 ticks per second; the lobby has always run on 1G. Documentation only: no default changes.
@@ -270,7 +274,8 @@ v1.2.0.
   ephemeral credentials, waits for the built-in healthcheck, proves RCON
   answers `list`, and requires a backup archive to appear.
 
-[Unreleased]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.7.5...HEAD
+[Unreleased]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.7.6...HEAD
+[1.7.6]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.7.5...v1.7.6
 [1.7.5]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.7.4...v1.7.5
 [1.7.4]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.7.3...v1.7.4
 [1.7.3]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.7.2...v1.7.3
