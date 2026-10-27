@@ -7,7 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_(no unreleased changes yet)_
+### Changed
+
+- **The README says to size the heap to how much the world is played.** The image passes `MINECRAFT_SERVER_MEMORY` as both `-Xms` and `-Xmx`, so the whole heap is committed at start and never given back, and with Aikar's flags every page of it is touched before the first tick. On the server this template comes from, four worlds nobody had entered in three months went from 2G to 1G and their containers from 2.7 to 1.5 GiB, still at 20.0 ticks per second; the lobby has always run on 1G. Documentation only: no default changes.
 
 ## [1.7.5] - 2026-10-27
 
