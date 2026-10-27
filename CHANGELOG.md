@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **The server's memory limit was the size of its heap.** Since 1.2.0 `MINECRAFT_SERVER_MEMORY_LIMIT` defaulted to 2g, and `MINECRAFT_SERVER_MEMORY` gives the JVM a 2G heap (the image sets both `-Xms` and `-Xmx` from it). The JVM keeps memory outside its heap, the kernel counts all of it, and the image's documentation asks for a quarter more on the container than the heap; a busy server filling its heap would be OOM-killed, which stops it without a save. CI did not see it: an empty world never fills a 2G heap. The limit now defaults to 2560m. If you change the heap in `.env`, change the limit with it; a limit you already set there is untouched.
+
 ### Changed
 
 - **`itzg/mc-backup:2026.10.1` moved to `itzg/mc-backup:2026.10.2`.** The freshness check reported the lag; the deploy job booted the stack on the new image before this landed.

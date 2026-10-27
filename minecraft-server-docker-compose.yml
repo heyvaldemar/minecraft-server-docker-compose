@@ -24,7 +24,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: ${MINECRAFT_SERVER_MEMORY_LIMIT:-2g}
+          memory: ${MINECRAFT_SERVER_MEMORY_LIMIT:-2560m}
           cpus: "${MINECRAFT_SERVER_CPU_LIMIT:-2.0}"
         reservations:
           memory: ${MINECRAFT_SERVER_MEMORY_RESERVATION:-256m}
@@ -39,6 +39,8 @@ services:
       EULA: ${MINECRAFT_SERVER_EULA:-true}
       TYPE: ${MINECRAFT_SERVER_TYPE:-PAPER}
       VERSION: ${MINECRAFT_SERVER_VERSION:-LATEST}
+      # The heap (both -Xms and -Xmx). MINECRAFT_SERVER_MEMORY_LIMIT above holds it
+      # and a quarter more for what the JVM keeps outside it. Change them together.
       MEMORY: ${MINECRAFT_SERVER_MEMORY:-2G}
       SERVER_NAME: ${MINECRAFT_SERVER_SERVER_NAME:-Minecraft Server}
       MOTD: ${MINECRAFT_SERVER_MOTD:-heyvaldemar.com - IT Guides by Docker Captain}
