@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+_(no unreleased changes yet)_
+
+## [1.7.5] - 2026-10-27
+
 ### Fixed
 
 - **The server's memory limit was the size of its heap.** Since 1.2.0 `MINECRAFT_SERVER_MEMORY_LIMIT` defaulted to 2g, and `MINECRAFT_SERVER_MEMORY` gives the JVM a 2G heap (the image sets both `-Xms` and `-Xmx` from it). The JVM keeps memory outside its heap, the kernel counts all of it, and the image's documentation asks for a quarter more on the container than the heap; a busy server filling its heap would be OOM-killed, which stops it without a save. CI did not see it: an empty world never fills a 2G heap. The limit now defaults to 2560m. If you change the heap in `.env`, change the limit with it; a limit you already set there is untouched.
@@ -264,7 +268,8 @@ v1.2.0.
   ephemeral credentials, waits for the built-in healthcheck, proves RCON
   answers `list`, and requires a backup archive to appear.
 
-[Unreleased]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.7.4...HEAD
+[Unreleased]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.7.5...HEAD
+[1.7.5]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.7.4...v1.7.5
 [1.7.4]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.7.3...v1.7.4
 [1.7.3]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.7.2...v1.7.3
 [1.7.2]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.7.1...v1.7.2
