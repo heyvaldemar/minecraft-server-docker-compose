@@ -114,6 +114,13 @@ Two mechanisms, combinable:
 
 Plugins are re-resolved on every container start, so version bumps arrive with a `--force-recreate`.
 
+### When a plugin's download host is down
+
+Floodgate comes from `download.geysermc.org` through `MINECRAFT_SERVER_PLUGINS`, fetched on every start, and a failed download stops the start. On 2026-10-30 that host served a Cloudflare Origin certificate that no client trusts, and on the server this template comes from every world restarted in a loop for about seven minutes. If it happens again:
+
+- **Do not just delete the URL.** The image removes from the plugins directory any entry that leaves the list ([its documentation](https://docker-minecraft-server.readthedocs.io/en/latest/mods-and-plugins/)), so the jar that was working goes with it.
+- **Swap the URL for a local copy.** Put the same jar in `./plugins/`, which is mounted at `/plugins`, and list its container path instead: `MINECRAFT_SERVER_PLUGINS=/plugins/floodgate-spigot.jar`. The list takes container paths as well as URLs. Then `docker compose up -d`, and switch back to the URL once the host is fixed.
+
 ### Before you move to a new Minecraft version
 
 A Minecraft release always outpaces its plugin ecosystem. `VERSION` defaults to `LATEST`, so the server takes the new one the moment it appears — and if the plugins pinned in `MODRINTH_PROJECTS` have no build for it yet, it exits during plugin resolution, in a loop, with its version already bumped and its backup already taken. A world converted to a version its plugins cannot load is converted either way.

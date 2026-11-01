@@ -7,7 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_(no unreleased changes yet)_
+### Changed
+
+- **What to do when a plugin's download host is down**, in the README. On 2026-10-30 `download.geysermc.org` served an untrusted certificate and, on the server this template comes from, every world restarted in a loop for about seven minutes. Deleting the URL from `MINECRAFT_SERVER_PLUGINS` also deletes the jar it installed; listing a local copy by container path is what held.
 
 ## [1.7.7] - 2026-10-31
 
