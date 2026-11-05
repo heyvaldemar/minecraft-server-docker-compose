@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`itzg/mc-backup:2026.10.3` moved to `itzg/mc-backup:2026.11.0`.** The freshness check reported the lag; the deploy job booted the stack on the new image before this landed.
 - **What to do when a plugin's download host is down**, in the README. On 2026-10-30 `download.geysermc.org` served an untrusted certificate and, on the server this template comes from, every world restarted in a loop for about seven minutes. Deleting the URL from `MINECRAFT_SERVER_PLUGINS` also deletes the jar it installed; listing a local copy by container path is what held.
 
 ## [1.7.7] - 2026-10-31
