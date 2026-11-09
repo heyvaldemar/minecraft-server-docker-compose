@@ -217,7 +217,7 @@ The [Deployment Verification](https://github.com/heyvaldemar/minecraft-server-do
 1. **Lint**: actionlint on the workflow.
 2. **Trivy scans** of both pinned images (CRITICAL/HIGH, SARIF to the Security tab).
 3. **Pin freshness** (daily/manual): digest drift against Docker Hub plus release-lag checks against both itzg upstreams.
-4. **Deploy-and-test**: boots a real Paper server with ephemeral credentials, samples the shipped health check while the JVM starts, waits for it to pass (jar + plugin download + world generation), proves RCON answers `list`, and requires a backup archive to appear before the run may pass. Last, it stops every process that owns TCP 25565 with SIGSTOP (found by the socket, never by a name) and requires the shipped check to fail within its timeout while the JVM is still listed, then to pass again after SIGCONT; the stop stays short of Paper's 60-second watchdog.
+4. **Deploy-and-test**: boots a real Paper server with ephemeral credentials, requires the shipped health check red the moment the server's container starts, waits for it to pass (jar + plugin download + world generation), proves RCON answers `list`, and requires a backup archive to appear before the run may pass. Last, it stops every process that owns TCP 25565 with SIGSTOP (found by the socket, never by a name) and requires the shipped check to fail within its timeout while the JVM is still listed, then to pass again after SIGCONT; the stop stays short of Paper's 60-second watchdog.
 
 A green run is the authoritative proof that the shipped configuration produces a joinable server, not just a started container.
 

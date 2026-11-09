@@ -173,25 +173,23 @@ jobs:
           rm -f .upgrade-drill-previous.yml
           echo "the start below is now an upgrade from $prev"
 
-      - name: Start up services using Docker Compose
-        run: docker compose -f "$DOCKER_COMPOSE_FILE" -p "$COMPOSE_PROJECT_NAME" up -d
-
       - name: Before the server answers, the shipped health check is red
         # The check exactly as the compose file ships it, read back from the
-        # container, run once while the JVM is still starting. After the
-        # upgrade drill the jar and the world are already there, so a start
-        # can be quick enough that the server answers first; then there is
-        # nothing to sample, and the SIGSTOP plant below proves the red side.
+        # container, run the moment the server's container starts and before
+        # the JVM listens. The server is started alone for this: a plain
+        # `up -d` returns only once it is healthy, because the backup sidecar
+        # waits for service_healthy, and a sample after it proves nothing.
         run: |
+          docker compose -f "$DOCKER_COMPOSE_FILE" -p "$COMPOSE_PROJECT_NAME" up -d --no-deps minecraft-server
           cid="$(docker compose -f "$DOCKER_COMPOSE_FILE" -p "$COMPOSE_PROJECT_NAME" ps -q minecraft-server)"
           mapfile -t check < <(docker inspect "$cid" --format '{{json .Config.Healthcheck.Test}}' | jq -r '.[1:][]')
           echo "the shipped check: ${check[*]}"
           n=0; out="$(docker exec "$cid" "${check[@]}" 2>&1)" || n=$?
-          if [ "$n" = 0 ]; then
-            echo "the server already answers: the start was too quick to sample ($out)"
-          else
-            echo "while starting, the check exits $n: $out"
-          fi
+          echo "as the container starts, the check exits $n: $out"
+          [ "$n" != 0 ] || { echo "::error::the check was green before the server could have answered"; exit 1; }
+
+      - name: Start up services using Docker Compose
+        run: docker compose -f "$DOCKER_COMPOSE_FILE" -p "$COMPOSE_PROJECT_NAME" up -d
 
       - name: Every volume an image declares is one this stack names
         # A VOLUME the image declares and no mount covers becomes an anonymous
