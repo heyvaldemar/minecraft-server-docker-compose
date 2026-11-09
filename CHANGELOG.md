@@ -7,10 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+_(no unreleased changes yet)_
+
+## [1.8.0] - 2026-11-09
+
 ### Changed
 
 - **The health check is written out, and proven against a frozen server.** The stack relied on the image's built-in `mc-health`. The compose file now carries its own: `mc-monitor status` from inside the container, a Server List Ping that is healthy only on the server's status reply, 5-second timeout inside Docker's 10, every 30 seconds, three misses allowed, and a start period of `MINECRAFT_SERVER_START_PERIOD` (default 5m) for the first download and world generation. It skips the `mc-health` wrapper, which reads `/data/.mc-health.env` from the world directory and reports a stopped JVM healthy whenever `ENABLE_AUTOPAUSE` is on. Deployment Verification now starts the server alone and requires the shipped check red before the JVM listens, and at the end stops every process that owns TCP 25565 with SIGSTOP (`tests/fixtures/port-owner.sh`, by the socket, never by a name): the JVM stays in the process table, the check must fail within its timeout, and after SIGCONT it must pass again. It asks from inside the container: it does not prove the port is published on the host or open in a firewall; the README says so.
-
 ## [1.7.8] - 2026-11-06
 
 ### Changed
@@ -289,7 +292,8 @@ v1.2.0.
   ephemeral credentials, waits for the built-in healthcheck, proves RCON
   answers `list`, and requires a backup archive to appear.
 
-[Unreleased]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.7.8...HEAD
+[Unreleased]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.8.0...HEAD
+[1.8.0]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.7.8...v1.8.0
 [1.7.8]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.7.7...v1.7.8
 [1.7.7]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.7.6...v1.7.7
 [1.7.6]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.7.5...v1.7.6
