@@ -176,6 +176,23 @@ jobs:
       - name: Start up services using Docker Compose
         run: docker compose -f "$DOCKER_COMPOSE_FILE" -p "$COMPOSE_PROJECT_NAME" up -d
 
+      - name: Before the server answers, the shipped health check is red
+        # The check exactly as the compose file ships it, read back from the
+        # container, run once while the JVM is still starting. After the
+        # upgrade drill the jar and the world are already there, so a start
+        # can be quick enough that the server answers first; then there is
+        # nothing to sample, and the SIGSTOP plant below proves the red side.
+        run: |
+          cid="$(docker compose -f "$DOCKER_COMPOSE_FILE" -p "$COMPOSE_PROJECT_NAME" ps -q minecraft-server)"
+          mapfile -t check < <(docker inspect "$cid" --format '{{json .Config.Healthcheck.Test}}' | jq -r '.[1:][]')
+          echo "the shipped check: ${check[*]}"
+          n=0; out="$(docker exec "$cid" "${check[@]}" 2>&1)" || n=$?
+          if [ "$n" = 0 ]; then
+            echo "the server already answers: the start was too quick to sample ($out)"
+          else
+            echo "while starting, the check exits $n: $out"
+          fi
+
       - name: Every volume an image declares is one this stack names
         # A VOLUME the image declares and no mount covers becomes an anonymous
         # volume: it holds data, the backups never see it, and a down/up gives
@@ -201,8 +218,8 @@ jobs:
 
       - name: Wait for the Minecraft server to report healthy
         # First boot downloads the Paper server jar and the configured
-        # plugins, then boots the world — the built-in mc-health check
-        # only passes once the server accepts connections.
+        # plugins, then boots the world; the shipped check passes only on
+        # the server's Server List Ping reply.
         run: |
           echo "Waiting for the minecraft-server healthcheck..."
           # $COMPOSE_PROJECT_NAME and the inspect template are expanded by
@@ -268,6 +285,44 @@ jobs:
         run: |
           chmod +x tests/e2e-backup-restore.sh
           ./tests/e2e-backup-restore.sh
+
+      - name: Plant - the server frozen by SIGSTOP turns the check red while its process stays
+        # A check that looks for the JVM in the process table stays green on a
+        # hung server. SIGSTOP on every process that owns the listening socket
+        # (tests/fixtures/port-owner.sh: chosen by the socket, never by a name)
+        # leaves the JVM in the process table and nothing answering: the
+        # control, the JVM still there, must hold, and the shipped check must
+        # fail within its own timeout. After SIGCONT it must pass again. The
+        # stop stays short of Paper's 60-second watchdog, which would restart
+        # a server it finds frozen that long. The backup sidecar is stopped
+        # first: it would meet a frozen server over RCON.
+        run: |
+          dc() { docker compose -f "$DOCKER_COMPOSE_FILE" -p "$COMPOSE_PROJECT_NAME" "$@"; }
+          dc stop backups >/dev/null 2>&1
+          cid="$(dc ps -q minecraft-server)"
+          mapfile -t check < <(docker inspect "$cid" --format '{{json .Config.Healthcheck.Test}}' | jq -r '.[1:][]')
+          docker exec "$cid" "${check[@]}" >/dev/null 2>&1 || { echo "::error::the shipped check is not green on the running server"; exit 1; }
+          # The owners are visible only to their own user; try every uid here.
+          uids="$(docker exec "$cid" sh -c 'cat /proc/[0-9]*/status 2>/dev/null' | awk '/^Uid:/ { print $2 }' | sort -u)"
+          own=""; as=""
+          for u in $uids; do
+            own="$(docker exec -u "$u" -i "$cid" sh -s 25565 < tests/fixtures/port-owner.sh 2>/dev/null)" && { as="$u"; break; }
+          done
+          [ -n "$own" ] || { echo "::error::no user in the container can see who owns TCP 25565"; docker exec "$cid" cat /proc/net/tcp /proc/net/tcp6; exit 1; }
+          echo "TCP 25565 is listened on by (pid uid comm), as seen by uid $as:"; echo "$own"
+          pids="$(awk '{ print $1 }' <<<"$own" | tr '\n' ' ')"
+          docker exec -u "$as" "$cid" sh -c "kill -STOP $pids"
+          st="$(docker exec "$cid" sh -c "for p in $pids; do cut -d' ' -f3 /proc/\$p/stat; done" | tr '\n' ' ')"
+          o=0; docker exec "$cid" sh -c 'grep -qsx java /proc/[0-9]*/comm' || o=$?
+          t0=$SECONDS; n=0; out="$(docker exec "$cid" "${check[@]}" 2>&1)" || n=$?; took=$((SECONDS - t0))
+          docker exec -u "$as" "$cid" sh -c "kill -CONT $pids"
+          echo "owners stopped (states: $st): the JVM is still in the process table (exit $o); the shipped check exits $n in ${took}s: $out"
+          [ "$o" = 0 ] && [ "$n" != 0 ] && [ "$took" -le 9 ] || { echo "::error::expected the JVM still listed (0) and the check red within its timeout"; exit 1; }
+          for _ in $(seq 1 30); do
+            docker exec "$cid" "${check[@]}" >/dev/null 2>&1 && { echo "after SIGCONT the server answers again"; exit 0; }
+            sleep 2
+          done
+          echo "::error::the server did not answer again after SIGCONT"; exit 1
 
       - name: Show container logs on failure
         if: failure()

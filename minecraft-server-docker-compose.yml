@@ -75,6 +75,25 @@ services:
       - minecraft-server-network
     ports:
       - "${MINECRAFT_SERVER_SERVER_PORT:-25565}:${MINECRAFT_SERVER_SERVER_PORT:-25565}"
+    healthcheck:
+      # THE SERVER'S OWN ANSWER. mc-monitor (in the image) sends a Server List
+      # Ping, the query the multiplayer screen sends, and is healthy only on
+      # the server's status reply with its player counts. Written out here
+      # instead of the image's mc-health wrapper on purpose: mc-health reads
+      # /data/.mc-health.env, a file in the world directory that can turn it
+      # off, and calls a stopped JVM healthy whenever ENABLE_AUTOPAUSE is on.
+      # Deployment Verification stops the process that owns this port with
+      # SIGSTOP and requires red while the JVM is still in the process table,
+      # then green after SIGCONT. Each check ends within 5 seconds, inside
+      # Docker's 10. It asks from inside the container: it does not prove the
+      # port is published on the host or open in a firewall.
+      test: ["CMD", "mc-monitor", "status", "--host", "localhost", "--port", "${MINECRAFT_SERVER_SERVER_PORT:-25565}", "--timeout", "5s"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      # First boot downloads the Paper jar and the plugins and generates the
+      # world; failures before then do not count.
+      start_period: ${MINECRAFT_SERVER_START_PERIOD:-5m}
     restart: unless-stopped
 
   backups:

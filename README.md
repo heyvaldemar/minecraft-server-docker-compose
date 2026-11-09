@@ -68,7 +68,7 @@ First boot downloads the Paper jar and the configured plugins, then generates th
 ### What success looks like
 
 ```bash
-# The server container turns healthy once it accepts connections:
+# The server container turns healthy once it answers a Server List Ping:
 docker compose -f minecraft-server-docker-compose.yml -p minecraft ps
 
 # RCON works (lists online players):
@@ -99,6 +99,7 @@ docker compose -f minecraft-server-docker-compose.yml -p minecraft up -d --force
 - **Paper server** (`TYPE=PAPER`, `VERSION=LATEST` by default: pin a game version via `MINECRAFT_SERVER_VERSION` for stability).
 - **Automatic plugin install** from Modrinth project slugs and direct download URLs, with dependency resolution.
 - **Bedrock crossplay ready**: Floodgate ships in the default plugin list; pair with Geyser to let Bedrock players join.
+- **A health check that asks the server.** `mc-monitor status`, run inside the container, sends a Server List Ping, the query the multiplayer screen sends, and is healthy only on the server's status reply. It is written out in the compose file rather than left to the image's `mc-health`, which reads `/data/.mc-health.env` from the world directory (a file there can switch it off) and calls a stopped JVM healthy whenever `ENABLE_AUTOPAUSE` is on. Each check ends within 5 seconds, inside Docker's 10. CI freezes the process that owns the port with SIGSTOP and requires red while the JVM is still in the process table, then green after SIGCONT. It asks from inside the container, so it does not prove the port is published on the host or open in a firewall.
 - **RCON enabled** for admin commands (`rcon-cli` inside the container) and coordinated backups.
 - **RCON-coordinated backups**: `mc-backup` runs `save-off`/`save-all` around each archive so world saves are consistent, then prunes archives older than the retention window.
 - **40+ game settings** (mode, difficulty, view distance, whitelist, ops, world type…) exposed as env vars with compose-level defaults.
@@ -216,7 +217,7 @@ The [Deployment Verification](https://github.com/heyvaldemar/minecraft-server-do
 1. **Lint**: actionlint on the workflow.
 2. **Trivy scans** of both pinned images (CRITICAL/HIGH, SARIF to the Security tab).
 3. **Pin freshness** (daily/manual): digest drift against Docker Hub plus release-lag checks against both itzg upstreams.
-4. **Deploy-and-test**: boots a real Paper server with ephemeral credentials, waits for the built-in healthcheck to pass (jar + plugin download + world generation), proves RCON answers `list`, and requires a backup archive to appear before the run may pass.
+4. **Deploy-and-test**: boots a real Paper server with ephemeral credentials, samples the shipped health check while the JVM starts, waits for it to pass (jar + plugin download + world generation), proves RCON answers `list`, and requires a backup archive to appear before the run may pass. Last, it stops every process that owns TCP 25565 with SIGSTOP (found by the socket, never by a name) and requires the shipped check to fail within its timeout while the JVM is still listed, then to pass again after SIGCONT; the stop stays short of Paper's 60-second watchdog.
 
 A green run is the authoritative proof that the shipped configuration produces a joinable server, not just a started container.
 
