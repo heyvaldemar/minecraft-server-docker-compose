@@ -219,6 +219,10 @@ The [Deployment Verification](https://github.com/heyvaldemar/minecraft-server-do
 3. **Pin freshness** (daily/manual): digest drift against Docker Hub plus release-lag checks against both itzg upstreams.
 4. **Deploy-and-test**: boots a real Paper server with ephemeral credentials, requires the shipped health check red the moment the server's container starts, waits for it to pass (jar + plugin download + world generation), proves RCON answers `list`, and requires a backup archive to appear before the run may pass. Last, it stops every process that owns TCP 25565 with SIGSTOP (found by the socket, never by a name) and requires the shipped check to fail within its timeout while the JVM is still listed, then to pass again after SIGCONT; the stop stays short of Paper's 60-second watchdog.
 
+5. **The secret probe and a stop**: `tests/secret-probe.sh` gives the RCON password a value of its own and looks for it in `docker compose logs` of both services, the server's `logs/latest.log`, every command line in both containers and the host's `ps`, after the first start, for the whole first backup and after a restart, naming the place, never the value. `tests/clean-stop.sh` stops the server and needs its last save line, no SIGKILL and exit 0.
+
+**A stop saves the world, given the time.** On SIGTERM the image's process 1, `mc-server-runner`, sends `stop` over RCON and waits up to 60 seconds for the worlds to be saved. Docker's default grace period was 10 seconds, after which it kills the server mid-save; the compose file now gives it 60 (`MINECRAFT_SERVER_STOP_GRACE_PERIOD`). An empty CI world saves in under a second.
+
 A green run is the authoritative proof that the shipped configuration produces a joinable server, not just a started container.
 
 ---

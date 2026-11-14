@@ -94,6 +94,14 @@ services:
       # First boot downloads the Paper jar and the plugins and generates the
       # world; failures before then do not count.
       start_period: ${MINECRAFT_SERVER_START_PERIOD:-5m}
+    # THE SAVE ON THE WAY OUT GETS THE TIME IT IS GIVEN INSIDE. On SIGTERM the
+    # image's process 1, mc-server-runner, sends "stop" over RCON and waits
+    # for the server to save its worlds for up to 60 seconds (its command
+    # line: --stop-duration 60s). Docker's default grace period is 10
+    # seconds, after which it kills the server with SIGKILL, mid-save on a
+    # world that takes longer than that. An empty CI world saved in under a
+    # second (tests/clean-stop.sh); a large one does not.
+    stop_grace_period: ${MINECRAFT_SERVER_STOP_GRACE_PERIOD:-60s}
     restart: unless-stopped
 
   backups:

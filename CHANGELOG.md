@@ -7,7 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **CI looks for the RCON password everywhere it could leak to.** `tests/secret-probe.sh` gives it a value of its own and fails on it in `docker compose logs` of the server and the backup sidecar, the server's `logs/latest.log`, any command line in either container or the host's `ps`, after the first start, for the whole first backup (the sidecar asks the server over RCON to flush before it archives) and after a restart; it names the place, never the value. It found nothing ([run 43621196349](https://github.com/heyvaldemar/minecraft-server-docker-compose/actions/runs/43621196349)). The CI step that wrote the password into `.env` no longer computes it inline.
+- **A stop is measured.** `tests/clean-stop.sh` stops the server and needs its last save line: in under a second, exit 0, no SIGKILL, and Paper's "Saved … in world 'minecraft:the_end'".
+
 ### Fixed
+
+- **A stop is given the time the server's own runner waits for its save.** On SIGTERM, `mc-server-runner` sends `stop` over RCON and waits up to 60 seconds for the worlds to be written (`--stop-duration 60s` on its command line), but the compose file set no grace period, and Docker's default is 10 seconds, after which it kills the server with SIGKILL, mid-save on a world that takes longer. `stop_grace_period` is now 60 seconds, `MINECRAFT_SERVER_STOP_GRACE_PERIOD` in `.env` to change it.
 
 - **An index pushed again over the same build is no longer reported as drift.** The daily pin check compared each pin with the digest the tag's index has now and failed on any difference, so a publisher re-pushing the index over the very same images (a platform added, an attestation rewritten) turned it red for an image nobody rebuilt, and no pin would ever move to turn it green. It now also compares the linux/amd64 build under both digests, the one CI runs and proves: the same build passes with a notice naming both digests, a new build fails as drift exactly as before, and a build that cannot be read still fails.
 

@@ -108,6 +108,13 @@ jobs:
       DOCKER_COMPOSE_FILE: minecraft-server-docker-compose.yml
       COMPOSE_PROJECT_NAME: minecraft
       NETWORK_ONE: minecraft-server-network
+      # tests/secret-probe.sh: the RCON password gets a value of its own, and
+      # it may not reach docker compose logs (server and backup sidecar), the
+      # server's own log, a command line in either container or the host's ps.
+      PROBE_PROJECT: minecraft
+      PROBE_COMPOSE: minecraft-server-docker-compose.yml
+      PROBE_EXPECT: MINECRAFT_SERVER_RCON_PASSWORD
+      PROBE_GAME_LOGS: minecraft-server:/data/logs/latest.log
 
     steps:
       - name: Checkout repository
@@ -124,11 +131,14 @@ jobs:
         # smoke completes inside the job.
         run: |
           cat > .env <<EOF
-          MINECRAFT_SERVER_RCON_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=' | head -c 32)
           MINECRAFT_SERVER_EULA=true
           MINECRAFT_SERVER_INITIAL_DELAY=15s
           MINECRAFT_SERVER_BACKUP_INTERVAL=60s
           EOF
+          # The RCON password: tests/secret-probe.sh plant writes a random one
+          # by awk through its environment, never on a command line, and keeps
+          # it for the probe.
+          tests/secret-probe.sh plant
           echo "Generated ephemeral .env for CI run"
 
       - name: Upgrade drill — the previous release comes up first, on the volumes this run will upgrade
@@ -233,13 +243,17 @@ jobs:
         # the shipped RCON wiring works, not just that the port is open.
         run: |
           docker compose -f "$DOCKER_COMPOSE_FILE" -p "$COMPOSE_PROJECT_NAME" exec -T minecraft-server rcon-cli list
+          tests/secret-probe.sh check "first start"
 
       - name: Verify a backup archive is produced
+        # Watched by the probe: the sidecar asks the server over RCON to stop
+        # writing and flush before each archive, and every command line in
+        # both containers and on the host is sampled until the first archive
+        # is there.
         run: |
           echo "Waiting for the first backup archive..."
-          timeout 5m bash -c 'until ls minecraft-server-data-backups/*.tar.gz >/dev/null 2>&1; do
-            echo "Still waiting..."
-            sleep 10
+          tests/secret-probe.sh during "the first backup" timeout 5m bash -c 'until ls minecraft-server-data-backups/*.tar.gz >/dev/null 2>&1; do
+            sleep 2
           done'
           # shellcheck disable=SC2012
           ls -la minecraft-server-data-backups/ | tail -3
@@ -322,13 +336,41 @@ jobs:
           done
           echo "::error::the server did not answer again after SIGCONT"; exit 1
 
+      - name: After a restart, the probe looks again; and it sees what it looks for
+        run: |
+          dc() { docker compose -f "$DOCKER_COMPOSE_FILE" -p "$COMPOSE_PROJECT_NAME" "$@"; }
+          cid="$(dc ps -q minecraft-server)"
+          dc restart minecraft-server >/dev/null
+          # shellcheck disable=SC2016  # $0 is the inner bash's own argument
+          timeout 10m bash -c 'until [ "$(docker inspect -f "{{.State.Health.Status}}" "$0")" = healthy ]; do sleep 5; done' "$cid"
+          tests/secret-probe.sh check "after a restart"
+          # The selftest writes its canary to the first container's process 1
+          # as that process's own user. The server's process 1 drops from root
+          # to uid 1000, which makes it non-dumpable, so even uid 1000 cannot
+          # open its /proc/1/fd/1 (measured: Permission denied). The backup
+          # sidecar's (entrypoint-demoter, root) can be written to, and it is
+          # listed first; it is brought back up if a test above stopped it.
+          dc up -d --no-deps backups >/dev/null
+          for _ in $(seq 1 30); do [ -n "$(dc ps -q --status running backups)" ] && break; sleep 1; done
+          tests/secret-probe.sh selftest
+
+      - name: A stop - timed, its exit code, and the world saved (tests/clean-stop.sh)
+        env:
+          CLEAN_STOP_PROJECT: minecraft
+          CLEAN_STOP_COMPOSE: minecraft-server-docker-compose.yml
+        # Paper's last save line is its chunk holder's for the End; vanilla
+        # ends with "All dimensions are saved".
+        run: tests/clean-stop.sh minecraft-server "All dimensions are saved|Saved .* in world 'minecraft:the_end'"
+
       - name: Show container logs on failure
         if: failure()
         run: docker compose -f "$DOCKER_COMPOSE_FILE" -p "$COMPOSE_PROJECT_NAME" logs
 
       - name: Shutdown Docker Compose services
         if: always()
-        run: docker compose -f "$DOCKER_COMPOSE_FILE" -p "$COMPOSE_PROJECT_NAME" down
+        run: |
+          docker compose -f "$DOCKER_COMPOSE_FILE" -p "$COMPOSE_PROJECT_NAME" down
+          rm -f "$RUNNER_TEMP/secret-probe.values"
 
   plugins:
     name: Do the pinned plugins exist for the version this would run
