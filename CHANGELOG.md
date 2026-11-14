@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+_(no unreleased changes yet)_
+
+## [1.9.0] - 2026-11-14
+
 ### Added
 
 - **CI looks for the RCON password everywhere it could leak to.** `tests/secret-probe.sh` gives it a value of its own and fails on it in `docker compose logs` of the server and the backup sidecar, the server's `logs/latest.log`, any command line in either container or the host's `ps`, after the first start, for the whole first backup (the sidecar asks the server over RCON to flush before it archives) and after a restart; it names the place, never the value. It found nothing ([run 43621196349](https://github.com/heyvaldemar/minecraft-server-docker-compose/actions/runs/43621196349)). The CI step that wrote the password into `.env` no longer computes it inline.
@@ -307,7 +311,8 @@ v1.2.0.
   ephemeral credentials, waits for the built-in healthcheck, proves RCON
   answers `list`, and requires a backup archive to appear.
 
-[Unreleased]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.8.1...HEAD
+[Unreleased]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.9.0...HEAD
+[1.9.0]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.8.1...v1.9.0
 [1.8.1]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.7.8...v1.8.0
 [1.7.8]: https://github.com/heyvaldemar/minecraft-server-docker-compose/compare/v1.7.7...v1.7.8
