@@ -107,8 +107,15 @@ collect() {  # every place, into $WORK; fails closed: a place it cannot read is 
     || { echo "secret-probe: cannot read docker compose logs" >&2; return 1; }
   : >"$WORK/cmdlines"
   local cid unread=""
+  # A process can end between the glob and the read; that is not a place
+  # it cannot read. The loop used to end on the status of its last test,
+  # so a short-lived process last in glob order failed the whole read,
+  # and an unreadable one anywhere else passed. Now every process still
+  # there must be read (the probe's own shell aside), a process gone by
+  # the read is not counted, and a container with nothing else to read
+  # fails, as does one that cannot be entered.
   for cid in $(docker compose -p "$PROJECT" -f "$COMPOSE" ps -q 2>/dev/null); do
-    docker exec -u 0 "$cid" sh -c 'for p in /proc/[0-9]*; do [ -r "$p/cmdline" ] && tr "\0" " " <"$p/cmdline" && echo; done' \
+    docker exec -u 0 "$cid" sh -c 'self=$$; seen=0; got=0; for p in /proc/[0-9]*; do [ "${p#/proc/}" = "$self" ] && continue; if tr "\0" " " <"$p/cmdline" 2>/dev/null; then echo; got=$((got + 1)); seen=$((seen + 1)); elif [ -d "$p" ]; then seen=$((seen + 1)); fi; done; [ "$seen" -gt 0 ] && [ "$got" = "$seen" ]' \
       >>"$WORK/cmdlines" 2>/dev/null || unread+=" $(docker inspect -f '{{.Name}}' "$cid")"
   done
   ps -eo args >"$WORK/hostps" || { echo "secret-probe: cannot read the host's ps" >&2; return 1; }
