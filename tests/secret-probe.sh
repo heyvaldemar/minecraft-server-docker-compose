@@ -137,7 +137,9 @@ collect() {  # every place, into $WORK; fails closed: a place it cannot read is 
   local places="logs cmdlines hostps"
   [ -n "${PROBE_GAME_LOGS:-}" ] && places+=" gamelogs"
   for f in $places; do
-    [ -s "$WORK/$f" ] || { echo "secret-probe: nothing read from $f; a place with nothing in it proves nothing" >&2; return 1; }
+    # A place that holds only blank lines proves nothing either: a process with an empty command
+    # line still ends its line, so "has bytes" is not "has something to search".
+    grep -q '[^[:space:]]' "$WORK/$f" 2>/dev/null || { echo "secret-probe: nothing read from $f; a place with nothing in it proves nothing" >&2; return 1; }
   done
 }
 
